@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -18,6 +19,9 @@ import com.avispl.symphony.api.dal.dto.monitor.aggregator.AggregatedDevice;
 import com.avispl.symphony.api.dal.monitor.Monitorable;
 import com.avispl.symphony.api.dal.monitor.aggregator.Aggregator;
 
+import com.avispl.symphony.dal.aggregator.parser.AggregatedDeviceProcessor;
+import com.avispl.symphony.dal.aggregator.parser.PropertiesMapping;
+import com.avispl.symphony.dal.aggregator.parser.PropertiesMappingParser;
 import com.avispl.symphony.dal.communicator.RestCommunicator;
 import com.avispl.symphony.dal.infrastructure.management.qsc.qsysreflect.dto.SystemResponse;
 
@@ -29,6 +33,8 @@ import com.avispl.symphony.dal.infrastructure.management.qsc.qsysreflect.dto.Sys
  */
 public class QSysReflectCommunicator extends RestCommunicator implements Aggregator, Monitorable {
 
+	private String apiToken;
+	private List<AggregatedDevice> aggregatedDeviceList;
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
 	/**
@@ -47,8 +53,18 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * {@inheritDoc}
 	 */
 	@Override
-	protected void authenticate() throws Exception {
+	protected void internalInit() throws Exception {
+		apiToken = this.getPassword();
+		this.setBaseUri("/api/public/v0");
+		super.internalInit();
+	}
 
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	protected void authenticate() throws Exception {
+		//
 	}
 
 	/**
@@ -56,7 +72,8 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 */
 	@Override
 	public List<AggregatedDevice> retrieveMultipleStatistics() throws Exception {
-		return null;
+		retrieveDevices();
+		return aggregatedDeviceList;
 	}
 
 	/**
@@ -64,6 +81,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 */
 	@Override
 	protected HttpHeaders putExtraRequestHeaders(HttpMethod httpMethod, String uri, HttpHeaders headers) throws Exception {
+		headers.setBearerAuth(apiToken);
 		return headers;
 	}
 
@@ -72,7 +90,20 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 */
 	@Override
 	public List<AggregatedDevice> retrieveMultipleStatistics(List<String> listDeviceId) throws Exception {
-		return null;
+		return retrieveMultipleStatistics().stream().filter(aggregatedDevice -> listDeviceId.contains(aggregatedDevice.getDeviceId())).collect(Collectors.toList());
+	}
+
+	/**
+	 * Get list of device
+	 *
+	 * @throws Exception Throw exception when fail to get response device
+	 */
+	private void retrieveDevices() throws Exception {
+		Map<String, PropertiesMapping> mapping = new PropertiesMappingParser().loadYML("qsysreflect/model-mapping.yml", getClass());
+		AggregatedDeviceProcessor aggregatedDeviceProcessor = new AggregatedDeviceProcessor(mapping);
+		String responseDeviceList = this.doGet("/cores", String.class);
+		JsonNode devices = objectMapper.readTree(responseDeviceList);
+		aggregatedDeviceList = new ArrayList<>(aggregatedDeviceProcessor.extractDevices(devices));
 	}
 
 	/**
