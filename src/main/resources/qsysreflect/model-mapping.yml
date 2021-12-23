@@ -7,6 +7,7 @@ models:
         FirmwareVersion: get("firmware")
         siteId: get("site").get("id")
         siteName: get("site").get("name")
+        deviceUptime: get("uptime")
       mapping:
         deviceModel: get("model")
         deviceName: get("name")
@@ -15,7 +16,6 @@ models:
         deviceUptime: get("uptime")
         siteId: get("site").get("id")
         siteName: get("site").get("name")
-        deviceOnline: get("status").get("code").asInt() == 2
   - model:
       name: Core 110f
       vendor: QSC
@@ -32,7 +32,6 @@ models:
         deviceUptime: get("uptime")
         siteId: get("site").get("id")
         siteName: get("site").get("name")
-        deviceOnline: get("status").get("code").asInt() == 2
   - model:
       name: Core 510i
       vendor: QSC
@@ -49,7 +48,6 @@ models:
         deviceUptime: get("uptime")
         siteId: get("site").get("id")
         siteName: get("site").get("name")
-        deviceOnline: get("status").get("code").asInt() == 2
   - model:
       name: NV-32-H (Core Mode)
       vendor: QSC
@@ -66,4 +64,3 @@ models:
         deviceUptime: get("uptime")
         siteId: get("site").get("id")
         siteName: get("site").get("name")
-        deviceOnline: get("status").get("code").asInt() == 2

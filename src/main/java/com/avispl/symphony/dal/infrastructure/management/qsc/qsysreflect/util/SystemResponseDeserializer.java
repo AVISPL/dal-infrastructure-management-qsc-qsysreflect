@@ -28,10 +28,14 @@ public class SystemResponseDeserializer extends StdDeserializer<SystemResponse> 
 		systemResponse.setCode(jsonNode.get("code").asText());
 		systemResponse.setName(jsonNode.get("name").asText());
 		systemResponse.setStatusString(jsonNode.get("status").get("message").asText());
-		systemResponse.setNormalCore(jsonNode.get("status").get("details").get("items").get("normal").asInt());
-		systemResponse.setWarningCore(jsonNode.get("status").get("details").get("items").get("warning").asInt());
-		systemResponse.setFaultCore(jsonNode.get("status").get("details").get("items").get("fault").asInt());
-		systemResponse.setUnknownCore(jsonNode.get("status").get("details").get("items").get("unknown").asInt());
+		systemResponse.setNormalAlert(jsonNode.get("status").get("details").get("items").get("normal").asInt());
+		systemResponse.setWarningAlert(jsonNode.get("status").get("details").get("items").get("warning").asInt());
+		systemResponse.setFaultAlert(jsonNode.get("status").get("details").get("items").get("fault").asInt());
+		systemResponse.setUnknownAlert(jsonNode.get("status").get("details").get("items").get("unknown").asInt());
+		systemResponse.setDesignName(jsonNode.get("design").get("name").asText());
+		systemResponse.setDesignPlatform(jsonNode.get("design").get("platform").asText());
+		systemResponse.setUptime(jsonNode.get("design").get("uptime").asLong());
+		systemResponse.setCoreName(jsonNode.get("core").get("name").asText());
 		return systemResponse;
 	}
 }

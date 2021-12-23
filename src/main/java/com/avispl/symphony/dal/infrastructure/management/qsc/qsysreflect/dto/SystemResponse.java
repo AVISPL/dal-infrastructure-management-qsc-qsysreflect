@@ -11,10 +11,14 @@ public class SystemResponse {
 	private String code;
 	private String name;
 	private String statusString;
-	private int normalCore;
-	private int warningCore;
-	private int faultCore;
-	private int unknownCore;
+	private int normalAlert;
+	private int warningAlert;
+	private int faultAlert;
+	private int unknownAlert;
+	private String designName;
+	private String designPlatform;
+	private Long uptime;
+	private String coreName;
 
 	/**
 	 * Retrieves {@code {@link #id}}
@@ -89,88 +93,146 @@ public class SystemResponse {
 	}
 
 	/**
-	 * Retrieves {@code {@link #normalCore}}
+	 * Retrieves {@code {@link #normalAlert}}
 	 *
-	 * @return value of {@link #normalCore}
+	 * @return value of {@link #normalAlert}
 	 */
-	public int getNormalCore() {
-		return normalCore;
+	public int getNormalAlert() {
+		return normalAlert;
 	}
 
 	/**
-	 * Sets {@code normalCore}
+	 * Sets {@code normalAlert}
 	 *
-	 * @param normalCore the {@code int} field
+	 * @param normalAlert the {@code int} field
 	 */
-	public void setNormalCore(int normalCore) {
-		this.normalCore = normalCore;
+	public void setNormalAlert(int normalAlert) {
+		this.normalAlert = normalAlert;
 	}
 
 	/**
-	 * Retrieves {@code {@link #warningCore}}
+	 * Retrieves {@code {@link #warningAlert}}
 	 *
-	 * @return value of {@link #warningCore}
+	 * @return value of {@link #warningAlert}
 	 */
-	public int getWarningCore() {
-		return warningCore;
+	public int getWarningAlert() {
+		return warningAlert;
 	}
 
 	/**
-	 * Sets {@code warningCore}
+	 * Sets {@code warningAlert}
 	 *
-	 * @param warningCore the {@code int} field
+	 * @param warningAlert the {@code int} field
 	 */
-	public void setWarningCore(int warningCore) {
-		this.warningCore = warningCore;
+	public void setWarningAlert(int warningAlert) {
+		this.warningAlert = warningAlert;
 	}
 
 	/**
-	 * Retrieves {@code {@link #faultCore}}
+	 * Retrieves {@code {@link #faultAlert}}
 	 *
-	 * @return value of {@link #faultCore}
+	 * @return value of {@link #faultAlert}
 	 */
-	public int getFaultCore() {
-		return faultCore;
+	public int getFaultAlert() {
+		return faultAlert;
 	}
 
 	/**
-	 * Sets {@code faultCore}
+	 * Sets {@code faultAlert}
 	 *
-	 * @param faultCore the {@code int} field
+	 * @param faultAlert the {@code int} field
 	 */
-	public void setFaultCore(int faultCore) {
-		this.faultCore = faultCore;
+	public void setFaultAlert(int faultAlert) {
+		this.faultAlert = faultAlert;
 	}
 
 	/**
-	 * Retrieves {@code {@link #unknownCore}}
+	 * Retrieves {@code {@link #unknownAlert}}
 	 *
-	 * @return value of {@link #unknownCore}
+	 * @return value of {@link #unknownAlert}
 	 */
-	public int getUnknownCore() {
-		return unknownCore;
+	public int getUnknownAlert() {
+		return unknownAlert;
 	}
 
 	/**
-	 * Sets {@code unknownCore}
+	 * Sets {@code unknownAlert}
 	 *
-	 * @param unknownCore the {@code int} field
+	 * @param unknownAlert the {@code int} field
 	 */
-	public void setUnknownCore(int unknownCore) {
-		this.unknownCore = unknownCore;
+	public void setUnknownAlert(int unknownAlert) {
+		this.unknownAlert = unknownAlert;
 	}
 
-	@Override
-	public String toString() {
-		return "SystemResponse{" +
-				"id=" + id +
-				", code='" + code + '\'' +
-				", name='" + name + '\'' +
-				", statusString='" + statusString + '\'' +
-				", normalCore=" + normalCore +
-				", warningCore=" + warningCore +
-				", faultCore=" + faultCore +
-				", unknownCore=" + unknownCore +
-				'}';
+	/**
+	 * Retrieves {@code {@link #designName}}
+	 *
+	 * @return value of {@link #designName}
+	 */
+	public String getDesignName() {
+		return designName;
+	}
+
+	/**
+	 * Sets {@code designName}
+	 *
+	 * @param designName the {@code java.lang.String} field
+	 */
+	public void setDesignName(String designName) {
+		this.designName = designName;
+	}
+
+	/**
+	 * Retrieves {@code {@link #designPlatform}}
+	 *
+	 * @return value of {@link #designPlatform}
+	 */
+	public String getDesignPlatform() {
+		return designPlatform;
+	}
+
+	/**
+	 * Sets {@code designPlatform}
+	 *
+	 * @param designPlatform the {@code java.lang.String} field
+	 */
+	public void setDesignPlatform(String designPlatform) {
+		this.designPlatform = designPlatform;
+	}
+
+	/**
+	 * Retrieves {@code {@link #uptime}}
+	 *
+	 * @return value of {@link #uptime}
+	 */
+	public Long getUptime() {
+		return uptime;
+	}
+
+	/**
+	 * Sets {@code uptime}
+	 *
+	 * @param uptime the {@code java.lang.Long} field
+	 */
+	public void setUptime(Long uptime) {
+		this.uptime = uptime;
+	}
+
+	/**
+	 * Retrieves {@code {@link #coreName}}
+	 *
+	 * @return value of {@link #coreName}
+	 */
+	public String getCoreName() {
+		return coreName;
+	}
+
+	/**
+	 * Sets {@code coreName}
+	 *
+	 * @param coreName the {@code java.lang.String} field
+	 */
+	public void setCoreName(String coreName) {
+		this.coreName = coreName;
 	}
 }
