@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2021 AVI-SPL, Inc. All Rights Reserved.
+ */
 package com.avispl.symphony.dal.infrastructure.management.qsc.qsysreflect;
 
 import java.util.ArrayList;
@@ -16,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.avispl.symphony.api.dal.dto.monitor.ExtendedStatistics;
 import com.avispl.symphony.api.dal.dto.monitor.Statistics;
 import com.avispl.symphony.api.dal.dto.monitor.aggregator.AggregatedDevice;
+import com.avispl.symphony.api.dal.error.ResourceNotReachableException;
 import com.avispl.symphony.api.dal.monitor.Monitorable;
 import com.avispl.symphony.api.dal.monitor.aggregator.Aggregator;
 
@@ -24,18 +28,43 @@ import com.avispl.symphony.dal.aggregator.parser.PropertiesMapping;
 import com.avispl.symphony.dal.aggregator.parser.PropertiesMappingParser;
 import com.avispl.symphony.dal.communicator.RestCommunicator;
 import com.avispl.symphony.dal.infrastructure.management.qsc.qsysreflect.dto.SystemResponse;
+import com.avispl.symphony.dal.infrastructure.management.qsc.qsysreflect.utils.QSysReflectConstant;
+import com.avispl.symphony.dal.infrastructure.management.qsc.qsysreflect.utils.QSysReflectSystemMetric;
 
 /**
  * Q-Sys Reflect Enterprise Management Communicator
+ * Supported features are:
+ * Monitoring Aggregated Device:
+ * <ul>
+ * <li> - Online / Offline Status</li>
+ * <li> - Firmware Version</li>
+ * <li> - Device ID</li>
+ * <li> - Device Model</li>
+ * <li> - Device Name</li>
+ * <li> - Serial Number</li>
+ * </ul>
  *
  * @author Duy Nguyen, Ivan
  * @since 1.0.0
  */
 public class QSysReflectCommunicator extends RestCommunicator implements Aggregator, Monitorable {
 
+	/**
+	 * Q-Sys Reflect API Token
+	 */
 	private String apiToken;
-	private List<AggregatedDevice> aggregatedDeviceList;
+
+	/**
+	 * List of aggregated device
+	 */
+	private List<AggregatedDevice> aggregatedDeviceList = Collections.synchronizedList(new ArrayList<>());
+
 	private final ObjectMapper objectMapper = new ObjectMapper();
+
+	/**
+	 * Map of device id and status message
+	 */
+	private Map<String, String> deviceStatusMessageMap = new HashMap<>();
 
 	/**
 	 * {@inheritDoc}
@@ -54,9 +83,25 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 */
 	@Override
 	protected void internalInit() throws Exception {
+		if (logger.isDebugEnabled()) {
+			logger.debug("Internal init is called.");
+		}
 		apiToken = this.getPassword();
-		this.setBaseUri("/api/public/v0");
+		this.setBaseUri(QSysReflectConstant.QSYS_BASE_URL);
 		super.internalInit();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	protected void internalDestroy() {
+		if (logger.isDebugEnabled()) {
+			logger.debug("Internal destroy is called.");
+		}
+		aggregatedDeviceList.clear();
+
+		super.internalDestroy();
 	}
 
 	/**
@@ -73,7 +118,23 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	@Override
 	public List<AggregatedDevice> retrieveMultipleStatistics() throws Exception {
 		retrieveDevices();
+		populateDeviceUptimeAndStatusMessage();
 		return aggregatedDeviceList;
+	}
+
+	/**
+	 * Populate normalize uptime and status message from the API
+	 */
+	private void populateDeviceUptimeAndStatusMessage() {
+		synchronized (aggregatedDeviceList) {
+			for (int i = 0; i < aggregatedDeviceList.size(); i++) {
+				AggregatedDevice aggregatedDevice = aggregatedDeviceList.get(i);
+				Map<String, String> properties = aggregatedDevice.getProperties();
+				properties.put(QSysReflectConstant.DEVICE_UPTIME, normalizeUptime((System.currentTimeMillis() - Long.parseLong(properties.get(QSysReflectConstant.DEVICE_UPTIME))) / 1000));
+				properties.put(QSysReflectConstant.DEVICE_STATUS_MESSAGE, deviceStatusMessageMap.get(aggregatedDevice.getDeviceId()));
+				aggregatedDeviceList.set(i, aggregatedDevice);
+			}
+		}
 	}
 
 	/**
@@ -101,9 +162,20 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	private void retrieveDevices() throws Exception {
 		Map<String, PropertiesMapping> mapping = new PropertiesMappingParser().loadYML("qsysreflect/model-mapping.yml", getClass());
 		AggregatedDeviceProcessor aggregatedDeviceProcessor = new AggregatedDeviceProcessor(mapping);
-		String responseDeviceList = this.doGet("/cores", String.class);
+		String responseDeviceList = this.doGet(QSysReflectConstant.QSYS_URL_CORES, String.class);
 		JsonNode devices = objectMapper.readTree(responseDeviceList);
-		aggregatedDeviceList = new ArrayList<>(aggregatedDeviceProcessor.extractDevices(devices));
+		for (int i = 0; i < devices.size(); i++) {
+			JsonNode currentDevice = devices.get(i);
+			if (currentDevice == null) {
+				throw new ResourceNotReachableException(String.format("Fail to get device at index %s", i));
+			}
+			deviceStatusMessageMap.put(currentDevice.get(QSysReflectConstant.ID).asText(), currentDevice.get(QSysReflectConstant.STATUS).get(QSysReflectConstant.MESSAGE).asText());
+		}
+		try {
+			aggregatedDeviceList = new ArrayList<>(aggregatedDeviceProcessor.extractDevices(devices));
+		} catch (Exception e) {
+			logger.error("Fail to get list of QSys devices.");
+		}
 	}
 
 	/**
@@ -113,7 +185,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * @throws Exception Throw exception when fail to convert to JsonNode
 	 */
 	public List<SystemResponse> getSystemInfo() throws Exception {
-		String systemResponse = this.doGet("/systems", String.class);
+		String systemResponse = this.doGet(QSysReflectConstant.QSYS_URL_SYSTEMS, String.class);
 		JsonNode systems = objectMapper.readTree(systemResponse);
 		List<SystemResponse> systemResponseList = new ArrayList<>();
 		for (int i = 0; i < systems.size(); i++) {
@@ -132,14 +204,54 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	private void populateSystemData(Map<String, String> stats) throws Exception {
 		List<SystemResponse> systemResponseList = getSystemInfo();
 		for (SystemResponse systemResponse : systemResponseList) {
-			stats.put(systemResponse.getName() + "#" + "SystemId", String.valueOf(systemResponse.getId()));
-			stats.put(systemResponse.getName() + "#" + "SystemCode", String.valueOf(systemResponse.getCode()));
-			stats.put(systemResponse.getName() + "#" + "SystemStatus", String.valueOf(systemResponse.getStatusString()));
-			stats.put(systemResponse.getName() + "#" + "NormalCore", String.valueOf(systemResponse.getNormalCore()));
-			stats.put(systemResponse.getName() + "#" + "WarningCore", String.valueOf(systemResponse.getWarningCore()));
-			stats.put(systemResponse.getName() + "#" + "FaultCore", String.valueOf(systemResponse.getFaultCore()));
-			stats.put(systemResponse.getName() + "#" + "UnknownCore", String.valueOf(systemResponse.getUnknownCore()));
+			stats.put(systemResponse.getName() + QSysReflectConstant.HASH_TAG + QSysReflectSystemMetric.SYSTEM_ID.getName(), String.valueOf(systemResponse.getId()));
+			stats.put(systemResponse.getName() + QSysReflectConstant.HASH_TAG + QSysReflectSystemMetric.SYSTEM_CODE.getName(), String.valueOf(systemResponse.getCode()));
+			stats.put(systemResponse.getName() + QSysReflectConstant.HASH_TAG + QSysReflectSystemMetric.SYSTEM_STATUS.getName(), String.valueOf(systemResponse.getStatusString()));
+			if (systemResponse.getNormalAlert() != null) {
+				stats.put(systemResponse.getName() + QSysReflectConstant.HASH_TAG + QSysReflectSystemMetric.ALERTS_NORMAL.getName(), String.valueOf(systemResponse.getNormalAlert()));
+				stats.put(systemResponse.getName() + QSysReflectConstant.HASH_TAG + QSysReflectSystemMetric.ALERTS_WARNING.getName(), String.valueOf(systemResponse.getWarningAlert()));
+				stats.put(systemResponse.getName() + QSysReflectConstant.HASH_TAG + QSysReflectSystemMetric.ALERTS_FAULT.getName(), String.valueOf(systemResponse.getFaultAlert()));
+				stats.put(systemResponse.getName() + QSysReflectConstant.HASH_TAG + QSysReflectSystemMetric.ALERTS_UNKNOWN.getName(), String.valueOf(systemResponse.getUnknownAlert()));
+			}
+			stats.put(systemResponse.getName() + QSysReflectConstant.HASH_TAG + QSysReflectSystemMetric.DESIGN_NAME.getName(), String.valueOf(systemResponse.getDesignName()));
+			stats.put(systemResponse.getName() + QSysReflectConstant.HASH_TAG + QSysReflectSystemMetric.DESIGN_PLATFORM.getName(), String.valueOf(systemResponse.getDesignPlatform()));
+			stats.put(systemResponse.getName() + QSysReflectConstant.HASH_TAG + QSysReflectSystemMetric.UPTIME.getName(), normalizeUptime((System.currentTimeMillis() - systemResponse.getUptime()) / 1000));
+			stats.put(systemResponse.getName() + QSysReflectConstant.HASH_TAG + QSysReflectSystemMetric.CORE_NAME.getName(), String.valueOf(systemResponse.getCoreName()));
 		}
 	}
+
+	/**
+	 * Uptime is received in seconds, need to normalize it and make it human-readable, like
+	 * 1 day(s) 5 hour(s) 12 minute(s) 55 minute(s)
+	 * Incoming parameter is may have a decimal point, so in order to safely process this - it's rounded first.
+	 * We don't need to add a segment of time if it's 0.
+	 *
+	 * @param uptimeSeconds value in seconds
+	 * @return string value of format 'x day(s) x hour(s) x minute(s) x minute(s)'
+	 * @author Maksym.Rossiytsev
+	 */
+	private String normalizeUptime(long uptimeSeconds) {
+		StringBuilder normalizedUptime = new StringBuilder();
+
+		long seconds = uptimeSeconds % 60;
+		long minutes = uptimeSeconds % 3600 / 60;
+		long hours = uptimeSeconds % 86400 / 3600;
+		long days = uptimeSeconds / 86400;
+
+		if (days > 0) {
+			normalizedUptime.append(days).append(" day(s) ");
+		}
+		if (hours > 0) {
+			normalizedUptime.append(hours).append(" hour(s) ");
+		}
+		if (minutes > 0) {
+			normalizedUptime.append(minutes).append(" minute(s) ");
+		}
+		if (seconds > 0) {
+			normalizedUptime.append(seconds).append(" second(s)");
+		}
+		return normalizedUptime.toString().trim();
+	}
+
 }
 

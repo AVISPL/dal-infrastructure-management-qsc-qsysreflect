@@ -1,9 +1,18 @@
+/*
+ * Copyright (c) 2021 AVI-SPL, Inc. All Rights Reserved.
+ */
 package com.avispl.symphony.dal.infrastructure.management.qsc.qsysreflect.dto;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
-import com.avispl.symphony.dal.infrastructure.management.qsc.qsysreflect.util.SystemResponseDeserializer;
+import com.avispl.symphony.dal.infrastructure.management.qsc.qsysreflect.utils.SystemResponseDeserializer;
 
+/**
+ * System Response DTO class
+ *
+ * @author Duy Nguyen
+ * @since 1.0.0
+ */
 @JsonDeserialize(using = SystemResponseDeserializer.class)
 public class SystemResponse {
 
@@ -11,10 +20,10 @@ public class SystemResponse {
 	private String code;
 	private String name;
 	private String statusString;
-	private int normalAlert;
-	private int warningAlert;
-	private int faultAlert;
-	private int unknownAlert;
+	private Integer normalAlert;
+	private Integer warningAlert;
+	private Integer faultAlert;
+	private Integer unknownAlert;
 	private String designName;
 	private String designPlatform;
 	private Long uptime;
@@ -97,7 +106,7 @@ public class SystemResponse {
 	 *
 	 * @return value of {@link #normalAlert}
 	 */
-	public int getNormalAlert() {
+	public Integer getNormalAlert() {
 		return normalAlert;
 	}
 
@@ -106,7 +115,7 @@ public class SystemResponse {
 	 *
 	 * @param normalAlert the {@code int} field
 	 */
-	public void setNormalAlert(int normalAlert) {
+	public void setNormalAlert(Integer normalAlert) {
 		this.normalAlert = normalAlert;
 	}
 
@@ -115,7 +124,7 @@ public class SystemResponse {
 	 *
 	 * @return value of {@link #warningAlert}
 	 */
-	public int getWarningAlert() {
+	public Integer getWarningAlert() {
 		return warningAlert;
 	}
 
@@ -124,7 +133,7 @@ public class SystemResponse {
 	 *
 	 * @param warningAlert the {@code int} field
 	 */
-	public void setWarningAlert(int warningAlert) {
+	public void setWarningAlert(Integer warningAlert) {
 		this.warningAlert = warningAlert;
 	}
 
@@ -133,7 +142,7 @@ public class SystemResponse {
 	 *
 	 * @return value of {@link #faultAlert}
 	 */
-	public int getFaultAlert() {
+	public Integer getFaultAlert() {
 		return faultAlert;
 	}
 
@@ -142,7 +151,7 @@ public class SystemResponse {
 	 *
 	 * @param faultAlert the {@code int} field
 	 */
-	public void setFaultAlert(int faultAlert) {
+	public void setFaultAlert(Integer faultAlert) {
 		this.faultAlert = faultAlert;
 	}
 
@@ -151,7 +160,7 @@ public class SystemResponse {
 	 *
 	 * @return value of {@link #unknownAlert}
 	 */
-	public int getUnknownAlert() {
+	public Integer getUnknownAlert() {
 		return unknownAlert;
 	}
 
@@ -160,7 +169,7 @@ public class SystemResponse {
 	 *
 	 * @param unknownAlert the {@code int} field
 	 */
-	public void setUnknownAlert(int unknownAlert) {
+	public void setUnknownAlert(Integer unknownAlert) {
 		this.unknownAlert = unknownAlert;
 	}
 
