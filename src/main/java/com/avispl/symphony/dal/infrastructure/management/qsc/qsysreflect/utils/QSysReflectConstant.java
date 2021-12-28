@@ -17,6 +17,7 @@ public class QSysReflectConstant {
 	public static final String COMMA = ",";
 	public static final String DEVICE_UPTIME = "deviceUptime";
 	public static final String DEVICE_STATUS_MESSAGE = "deviceStatusMessage";
+	public static final String DOUBLE_QUOTES = "";
 	public static final String HASH_TAG = "#";
 	public static final String QSYS_URL_SYSTEMS = "/systems";
 	public static final String QSYS_URL_CORES = "/cores";
