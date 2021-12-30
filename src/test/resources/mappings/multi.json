@@ -1,0 +1,30 @@
+{
+  "mappings": [
+    {
+      "request": {
+        "method": "GET",
+        "url": "/api/public/v0/systems"
+      },
+      "response": {
+        "status": 200,
+        "body": "[\n    {\n        \"id\": 9468,\n        \"code\": \"3-440F59FA6034C59670FF3C0928929607\",\n        \"name\": \"AVISPL Test Core110f\",\n        \"status\": {\n            \"code\": 0,\n            \"message\": \"Running\",\n            \"details\": {\n                \"items\": {\n                    \"normal\": 15,\n                    \"warning\": 0,\n                    \"fault\": 0,\n                    \"unknown\": 0\n                }\n            }\n        },\n        \"design\": {\n            \"id\": 222752,\n            \"code\": \"kavfVBw33mpT\",\n            \"name\": \"CeeSalt_TestCore_v3.1\",\n            \"platform\": \"Core 110f\",\n            \"isRedundant\": 0,\n            \"isEmulated\": 0,\n            \"uptime\": 1640662204000\n        },\n        \"core\": {\n            \"id\": 11928,\n            \"name\": \"CeeSalt-Core110f\"\n        }\n    },\n    {\n        \"id\": 10028,\n        \"code\": \"3-06AC3AB31F07DD0118B29EE65183499E\",\n        \"name\": \"Base Classroom Updated v7\",\n        \"status\": {\n            \"code\": 2,\n            \"message\": \"Running\",\n            \"details\": {\n                \"items\": {\n                    \"normal\": 8,\n                    \"warning\": 0,\n                    \"fault\": 2,\n                    \"unknown\": 0\n                }\n            }\n        },\n        \"design\": {\n            \"id\": 221280,\n            \"code\": \"jl0RfDqPs3OF\",\n            \"name\": \"Base Classroom Updated v7\",\n            \"platform\": \"NV-32-H (Core Mode)\",\n            \"isRedundant\": 0,\n            \"isEmulated\": 0,\n            \"uptime\": 1639685743000\n        },\n        \"core\": {\n            \"id\": 12714,\n            \"name\": \"nv-32-h-e159\"\n        }\n    },\n    {\n        \"id\": 94680,\n        \"code\": \"4-440F59FA6034C59670FF3C092892960E\",\n        \"name\": \"AVISPL Test\",\n        \"status\": {\n            \"code\": 8,\n            \"message\": \"Idle: no System installed\",\n            \"details\": null\n        },\n        \"design\": {\n            \"id\": 222524,\n            \"code\": \"joqw53I2hUAY\",\n            \"name\": \"CeeSalt_TestCore\",\n            \"platform\": \"Core\",\n            \"isRedundant\": 0,\n            \"isEmulated\": 0,\n            \"uptime\": 1640234824444\n        },\n        \"core\": {\n            \"id\": 119285,\n            \"name\": \"CeeSalt-Core\"\n        }\n    }\n]",
+        "headers": {
+          "content-type": "application/json"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "/api/public/v0/cores"
+      },
+      "response": {
+        "status": 200,
+        "body": "[\n    {\n        \"id\": 9440,\n        \"serial\": \"3-3F23AA07A6C4E22F526A88C3A5B0D217\",\n        \"name\": \"CHI-MillPark-DSP01\",\n        \"model\": \"Core 510i\",\n        \"modelNumber\": \"510\",\n        \"firmware\": \"9.2.1-2110.001\",\n        \"accessMode\": \"open\",\n        \"accessLevel\": 100,\n        \"uptime\": 1639608852674,\n        \"status\": {\n            \"code\": 2,\n            \"message\": \"Running\",\n            \"details\": \"\"\n        },\n        \"redundancy\": null,\n        \"site\": {\n            \"id\": 829,\n            \"name\": \"Schaumburg Office\"\n        }\n    },\n    {\n        \"id\": 11928,\n        \"serial\": \"3-440F59FA6034C59670FF3C0928929607\",\n        \"name\": \"CeeSalt-Core110f\",\n        \"model\": \"Core 110f\",\n        \"modelNumber\": \"110\",\n        \"firmware\": \"9.2.1-2110.001\",\n        \"accessMode\": \"protected\",\n        \"accessLevel\": 100,\n        \"uptime\": 1640660002652,\n        \"status\": {\n            \"code\": 2,\n            \"message\": \"Running\",\n            \"details\": \"\"\n        },\n        \"redundancy\": null,\n        \"site\": {\n            \"id\": 1853,\n            \"name\": \"AVI-SPL-LAB\"\n        }\n    },\n    {\n        \"id\": 12714,\n        \"serial\": \"3-06AC3AB31F07DD0118B29EE65183499E\",\n        \"name\": \"nv-32-h-e159\",\n        \"model\": \"NV-32-H (Core Mode)\",\n        \"modelNumber\": \"32\",\n        \"firmware\": \"9.3.0-2112.001\",\n        \"accessMode\": \"open\",\n        \"accessLevel\": 100,\n        \"uptime\": 1639685742978,\n        \"status\": {\n            \"code\": 2,\n            \"message\": \"Running\",\n            \"details\": \"\"\n        },\n        \"redundancy\": null,\n        \"site\": {\n            \"id\": 1853,\n            \"name\": \"AVI-SPL-LAB\"\n        }\n    },\n    {\n        \"id\": 11928,\n        \"serial\": \"3-440F59FA6034C59670FF3C0928929607\",\n        \"name\": \"CeeSalt-Core110f\",\n        \"model\": \"Core 110\",\n        \"modelNumber\": \"110\",\n        \"firmware\": \"9.2.1-2110.001\",\n        \"accessMode\": \"protected\",\n        \"accessLevel\": 100,\n        \"uptime\": 1640660002652,\n        \"status\": {\n            \"code\": 2,\n            \"message\": \"Running\",\n            \"details\": \"\"\n        },\n        \"redundancy\": null,\n        \"site\": {\n            \"id\": 1853,\n            \"name\": \"AVI-SPL-LAB\"\n        }\n    },\n    {\n        \"id\": 12715,\n        \"serial\": \"4-06AC3AB31F07DD0118B29EE65183400E\",\n        \"name\": \"AC-32-h-e159\",\n        \"model\": \"AC-32-H (Core Mode)\",\n        \"modelNumber\": \"31\",\n        \"firmware\": \"8.3.0-2112.001\",\n        \"accessMode\": \"open\",\n        \"accessLevel\": 101,\n        \"uptime\": 1639685742979,\n        \"status\": {\n            \"code\": 2,\n            \"message\": \"Idle: no device installed\",\n            \"details\": \"\"\n        },\n        \"redundancy\": null,\n        \"site\": {\n            \"id\": 1855,\n            \"name\": \"AVI-SPL\"\n        }\n    }\n]",
+        "headers": {
+          "content-type": "application/json"
+        }
+      }
+    }
+  ]
+}
