@@ -12,7 +12,24 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <symphonyApiVersion>5.3.0</symphonyApiVersion>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
+  <profiles>
+    <profile>
+      <id>RealDevice</id>
+      <properties>
+        <testcase.groups>RealDevice
+        </testcase.groups>
+      </properties>
+    </profile>
+    <profile>
+      <id>Mock</id>
+      <properties>
+        <testcase.groups>Mock
+        </testcase.groups>
+      </properties>
+    </profile>
+  </profiles>
   <build>
     <plugins>
       <plugin>
@@ -30,6 +47,10 @@
             <version>RELEASE</version>
           </dependency>
         </dependencies>
+        <configuration>
+          <!--suppress UnresolvedMavenProperty -->
+          <groups>${testcase.groups}</groups>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>pl.project13.maven</groupId>
@@ -126,13 +147,13 @@
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
-      <version>2.12.4</version>
+      <version>2.12.5</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-core</artifactId>
-      <version>2.12.4</version>
+      <version>2.12.5</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -144,7 +165,7 @@
     <dependency>
       <groupId>com.fasterxml.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-yaml</artifactId>
-      <version>2.12.4</version>
+      <version>2.12.5</version>
       <scope>provided</scope>
     </dependency>
     <dependency>

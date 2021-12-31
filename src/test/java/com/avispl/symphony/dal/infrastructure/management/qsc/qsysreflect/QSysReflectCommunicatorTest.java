@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 
 import com.avispl.symphony.api.dal.dto.monitor.ExtendedStatistics;
 import com.avispl.symphony.api.dal.dto.monitor.aggregator.AggregatedDevice;
+import com.avispl.symphony.api.dal.error.ResourceNotReachableException;
 import com.avispl.symphony.dal.communicator.HttpCommunicator.AuthenticationScheme;
 
 /**
@@ -27,6 +28,7 @@ import com.avispl.symphony.dal.communicator.HttpCommunicator.AuthenticationSchem
  * Test monitoring data with all systems and aggregator device
  *
  * @author Ivan
+ * @version 1.0
  * @since 1.0.0
  */
 class QSysReflectCommunicatorTest {
@@ -49,6 +51,7 @@ class QSysReflectCommunicatorTest {
 		qSysReflectCommunicator.setPort(wireMockRule.port());
 		qSysReflectCommunicator.setHost(HOST_NAME);
 		qSysReflectCommunicator.setContentType("application/json");
+		qSysReflectCommunicator.setPassword("57cfe39c35d7df9fde6f24008854e078225ddbd4bbf8cbdbd04284c8f333c454");
 		qSysReflectCommunicator.init();
 		qSysReflectCommunicator.authenticate();
 	}
@@ -63,7 +66,7 @@ class QSysReflectCommunicatorTest {
 	 * Test getMultipleStatistics get all current system
 	 * Expect getMultipleStatistics successfully with three systems
 	 */
-	@Tag("local")
+	@Tag("Mock")
 	@Test
 	void testGetMultipleStatistics() throws Exception {
 		qSysReflectCommunicator.retrieveMultipleStatistics();
@@ -106,7 +109,7 @@ class QSysReflectCommunicatorTest {
 	 * Test retrieveMultipleStatistics
 	 * Expect retrieveMultipleStatistics successfully with five aggregator device
 	 */
-	@Tag("local")
+	@Tag("Mock")
 	@Test
 	void testGetAggregatorData() throws Exception {
 		qSysReflectCommunicator.retrieveMultipleStatistics();
@@ -124,7 +127,7 @@ class QSysReflectCommunicatorTest {
 	 * Test retrieveMultipleStatistics with FilterModelName is running
 	 * Expect retrieveMultipleStatistics successfully with aggregator device running
 	 */
-	@Tag("local")
+	@Tag("Mock")
 	@Test
 	void testFilterStatusMessageIsRunning() throws Exception {
 		qSysReflectCommunicator.setFilterStatusMessage("Running");
@@ -142,7 +145,7 @@ class QSysReflectCommunicatorTest {
 	 * Test retrieveMultipleStatistics with FilterModelName
 	 * Expect retrieveMultipleStatistics successfully with AggregatorData
 	 */
-	@Tag("local")
+	@Tag("Mock")
 	@Test
 	void testFilterModelName() throws Exception {
 		qSysReflectCommunicator.setFilterModelName("Core 110f,Core 510i");
@@ -158,7 +161,7 @@ class QSysReflectCommunicatorTest {
 	 * Test retrieveMultipleStatistics with listDeviceId
 	 * Expect retrieveMultipleStatistics with listDeviceId successfully
 	 */
-	@Tag("local")
+	@Tag("Mock")
 	@Test
 	void testRetrieveMultipleStatisticsWithListDeviceId() throws Exception {
 		List<String> deviceList = new ArrayList<>();
@@ -191,7 +194,7 @@ class QSysReflectCommunicatorTest {
 	 * Test retrieveMultipleStatistics with FilterModelName not exists or empty
 	 * Expect retrieveMultipleStatistics is empty
 	 */
-	@Tag("local")
+	@Tag("Mock")
 	@Test
 	void testFilterModelNameNotExists() throws Exception {
 		qSysReflectCommunicator.setFilterModelName(",Core 100");
@@ -206,7 +209,7 @@ class QSysReflectCommunicatorTest {
 	 * Test retrieveMultipleStatistics with listDeviceId not exits
 	 * Expect retrieveMultipleStatistics is empty
 	 */
-	@Tag("local")
+	@Tag("Mock")
 	@Test
 	void testRetrieveMultipleStatisticsWithListDeviceIdIsNotExists() throws Exception {
 		List<String> deviceList = new ArrayList<>();
@@ -222,7 +225,7 @@ class QSysReflectCommunicatorTest {
 	 * Test retrieveMultipleStatistics with FilterModelName is Idle: no device installed
 	 * Expect retrieveMultipleStatistics successfully with aggregator device
 	 */
-	@Tag("local")
+	@Tag("Mock")
 	@Test
 	void testFilterStatusMessageNoDeviceInstalled() throws Exception {
 		qSysReflectCommunicator.setFilterStatusMessage("Idle: no device installed");
@@ -238,7 +241,7 @@ class QSysReflectCommunicatorTest {
 	 * Test retrieveMultipleStatistics with Device metadata retrieval timeout
 	 * Expect retrieveMultipleStatistics with listDeviceId successfully
 	 */
-	@Tag("local")
+	@Tag("Mock")
 	@Test
 	void testRetrieveMultipleStatisticsWithDeviceMetaDataRetrievalTimeout() throws Exception {
 		List<String> deviceList = new ArrayList<>();
@@ -268,7 +271,7 @@ class QSysReflectCommunicatorTest {
 	 * Test getMultipleStatistics with invalid authentication
 	 * Expect getMultipleStatistics failed
 	 */
-	@Tag("realDevice")
+	@Tag("RealDevice")
 	@Test
 	void testEnterTokenNotCorrect() throws Exception {
 		qSysReflectCommunicator.destroy();
@@ -287,10 +290,32 @@ class QSysReflectCommunicatorTest {
 	}
 
 	/**
+	 * Test getMultipleStatistics with invalid authentication
+	 * Expect getMultipleStatistics failed
+	 */
+	@Tag("RealDevice")
+	@Test
+	void testEnterTokenIsEmpty() throws Exception {
+		qSysReflectCommunicator.destroy();
+		qSysReflectCommunicator.setTrustAllCertificates(false);
+		qSysReflectCommunicator.setProtocol("https");
+		qSysReflectCommunicator.setContentType("application/json");
+		qSysReflectCommunicator.setHost("reflect.qsc.com");
+		qSysReflectCommunicator.setPort(443);
+		qSysReflectCommunicator.setAuthenticationScheme(AuthenticationScheme.Basic);
+		qSysReflectCommunicator.setLogin("tokenString");
+		qSysReflectCommunicator.setPassword("");
+		// Worker thread won't be initialized due to API token is empty
+		qSysReflectCommunicator.init();
+		qSysReflectCommunicator.retrieveMultipleStatistics();
+		assertThrows(ResourceNotReachableException.class, () -> qSysReflectCommunicator.getMultipleStatistics(), "Expect fail here due to api token is empty");
+	}
+
+	/**
 	 * Test getMultipleStatistics get all current system with real device
 	 * Expect getMultipleStatistics successfully with three systems
 	 */
-	@Tag("realDevice")
+	@Tag("RealDevice")
 	@Test
 	void testGetMultipleStatisticsWithRealDevice() throws Exception {
 		qSysReflectCommunicator.destroy();

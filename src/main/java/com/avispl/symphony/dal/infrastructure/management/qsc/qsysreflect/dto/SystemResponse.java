@@ -11,6 +11,7 @@ import com.avispl.symphony.dal.infrastructure.management.qsc.qsysreflect.utils.S
  * System Response DTO class
  *
  * @author Duy Nguyen
+ * @version 1.0.0
  * @since 1.0.0
  */
 @JsonDeserialize(using = SystemResponseDeserializer.class)
