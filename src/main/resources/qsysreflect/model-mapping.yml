@@ -4,7 +4,7 @@ models:
       vendor: QSC
       filter: get("model").asText().equals("Core 110f") == false && get("model").asText().equals("Core 510i") == false && get("model").asText().equals("NV-32-H (Core Mode)") == false
       properties:
-        FirmwareVersion: get("firmware")
+        firmwareVersion: get("firmware")
         siteId: get("site").get("id")
         siteName: get("site").get("name")
         deviceUptime: get("uptime")
@@ -16,12 +16,13 @@ models:
         deviceUptime: get("uptime")
         siteId: get("site").get("id")
         siteName: get("site").get("name")
+        deviceOnline: get("status").get("message").asText().equals("Running")
   - model:
       name: Core 110f
       vendor: QSC
       filter: get("model").asText().equals("Core 110f")
       properties:
-        FirmwareVersion: get("firmware")
+        firmwareVersion: get("firmware")
         siteId: get("site").get("id")
         siteName: get("site").get("name")
       mapping:
@@ -32,12 +33,13 @@ models:
         deviceUptime: get("uptime")
         siteId: get("site").get("id")
         siteName: get("site").get("name")
+        deviceOnline: get("status").get("message").asText().equals("Running")
   - model:
       name: Core 510i
       vendor: QSC
       filter: get("model").asText().equals("Core 510i")
       properties:
-        FirmwareVersion: get("firmware")
+        firmwareVersion: get("firmware")
         siteId: get("site").get("id")
         siteName: get("site").get("name")
       mapping:
@@ -48,12 +50,13 @@ models:
         deviceUptime: get("uptime")
         siteId: get("site").get("id")
         siteName: get("site").get("name")
+        deviceOnline: get("status").get("message").asText().equals("Running")
   - model:
       name: NV-32-H (Core Mode)
       vendor: QSC
       filter: get("model").asText().equals("NV-32-H (Core Mode)")
       properties:
-        FirmwareVersion: get("firmware")
+        firmwareVersion: get("firmware")
         siteId: get("site").get("id")
         siteName: get("site").get("name")
       mapping:
@@ -64,3 +67,4 @@ models:
         deviceUptime: get("uptime")
         siteId: get("site").get("id")
         siteName: get("site").get("name")
+        deviceOnline: get("status").get("message").asText().equals("Running")

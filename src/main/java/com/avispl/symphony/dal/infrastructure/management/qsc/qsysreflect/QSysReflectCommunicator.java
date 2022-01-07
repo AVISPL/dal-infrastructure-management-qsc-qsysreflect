@@ -89,33 +89,10 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 				if (devicePaused) {
 					continue mainloop;
 				}
-
-				long currentTimestamp = System.currentTimeMillis();
-				try {
-					if (logger.isDebugEnabled()) {
-						logger.debug("Fetching devices list");
-					}
-					retrieveDevices(currentTimestamp);
-					if (logger.isDebugEnabled()) {
-						logger.debug("Fetched devices list: " + aggregatedDeviceList);
-					}
-				} catch (Exception e) {
-					String errorMessage = "Error occurred during device list retrieval: " + e.getMessage() + " with cause: " + e.getCause().getMessage();
-					logger.error(errorMessage, e);
+				if (logger.isDebugEnabled()) {
+					logger.debug("Fetching devices and system information list");
 				}
-
-				try {
-					if (logger.isDebugEnabled()) {
-						logger.debug("Fetching system information list");
-					}
-					retrieveSystemInfo(currentTimestamp);
-					if (logger.isDebugEnabled()) {
-						logger.debug("Fetched system information list: " + systemResponseList);
-					}
-				} catch (Exception e) {
-					String errorMessage = "Error occurred during system information list retrieval: " + e.getMessage() + " with cause: " + e.getCause().getMessage();
-					logger.error(errorMessage, e);
-				}
+				retrieveInfo();
 				if (!inProgress) {
 					break mainloop;
 				}
@@ -437,6 +414,9 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 			populateDeviceUptimeAndStatusMessage(resultAggregatedDeviceList);
 			resultAggregatedDeviceList = filterDeviceModel(resultAggregatedDeviceList);
 			resultAggregatedDeviceList = filterDeviceStatusMessage(resultAggregatedDeviceList);
+			if (logger.isDebugEnabled()) {
+				logger.debug("Aggregated devices after applying filter: " + resultAggregatedDeviceList);
+			}
 			return resultAggregatedDeviceList;
 		}
 		return aggregatedDeviceList;
@@ -534,38 +514,59 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	}
 
 	/**
+	 * Retrieve aggregated devices and system information data -
+	 * and set next device/system collection iteration timestamp
+	 */
+	private void retrieveInfo() {
+		long currentTimestamp = System.currentTimeMillis();
+		if (validDeviceMetaDataRetrievalPeriodTimestamp > currentTimestamp) {
+			if (logger.isDebugEnabled()) {
+				logger.debug(String.format("Aggregated devices data and system information retrieval is in cool down. %s seconds left",
+						(validDeviceMetaDataRetrievalPeriodTimestamp - currentTimestamp) / 1000));
+				if (!aggregatedDeviceList.isEmpty()) {
+					logger.debug(String.format("Old fetched devices list: %s", aggregatedDeviceList));
+				}
+				if (!systemResponseList.isEmpty()) {
+					logger.debug(String.format("Old system information list: %s", systemResponseList));
+				}
+			}
+			return;
+		}
+		validDeviceMetaDataRetrievalPeriodTimestamp = currentTimestamp + deviceMetaDataRetrievalTimeout;
+		retrieveDevices();
+		if (logger.isDebugEnabled()) {
+			logger.debug(String.format("New fetched devices list: %s", aggregatedDeviceList));
+		}
+		retrieveSystemInfo();
+		if (logger.isDebugEnabled()) {
+			logger.debug(String.format("New fetched system information list: %s", systemResponseList));
+		}
+		nextDevicesCollectionIterationTimestamp = System.currentTimeMillis();
+	}
+
+	/**
 	 * Get list of device every 30 seconds
 	 * API Endpoint: /cores
 	 * Success: Return a list of devices(cores) within the organization
 	 *
-	 * @param currentTimestamp Current time stamp
-	 * @throws Exception will be added to a set then throw later in {{@link #getMultipleStatistics()}}
 	 */
-	private void retrieveDevices(long currentTimestamp) throws Exception {
-		if (!aggregatedDeviceList.isEmpty() && validDeviceMetaDataRetrievalPeriodTimestamp > currentTimestamp) {
-			if (logger.isDebugEnabled()) {
-				logger.debug(String.format("Aggregated devices data retrieval is in cool down. %s seconds left",
-						(validDeviceMetaDataRetrievalPeriodTimestamp - currentTimestamp) / 1000));
-			}
-			return;
-		}
+	private void retrieveDevices() {
 		try {
-			validDeviceMetaDataRetrievalPeriodTimestamp = currentTimestamp + deviceMetaDataRetrievalTimeout;
 			Map<String, PropertiesMapping> mapping = new PropertiesMappingParser().loadYML("qsysreflect/model-mapping.yml", getClass());
 			AggregatedDeviceProcessor aggregatedDeviceProcessor = new AggregatedDeviceProcessor(mapping);
 			String responseDeviceList = this.doGet(QSysReflectConstant.QSYS_URL_CORES, String.class);
 			JsonNode devices = objectMapper.readTree(responseDeviceList);
 			for (int i = 0; i < devices.size(); i++) {
 				JsonNode currentDevice = devices.get(i);
-				deviceStatusMessageMap.put(currentDevice.get(QSysReflectConstant.ID).asText(), currentDevice.get(QSysReflectConstant.STATUS).get(QSysReflectConstant.MESSAGE).asText());
+				deviceStatusMessageMap.put(currentDevice.get(QSysReflectConstant.ID).asText(), currentDevice.get(QSysReflectConstant.STATUS)
+						.get(QSysReflectConstant.MESSAGE).asText());
 			}
 			aggregatedDeviceList = new ArrayList<>(aggregatedDeviceProcessor.extractDevices(devices));
-			nextDevicesCollectionIterationTimestamp = System.currentTimeMillis();
 		} catch (Exception e) {
 			String errorMessage = "Aggregated Device Data Retrieval-Error:"
 					+ e.getMessage() + " with cause: " + e.getCause().getMessage();
 			deviceErrorMessagesList.add(errorMessage);
-			throw e;
+			logger.error(errorMessage);
 		}
 	}
 
@@ -574,28 +575,22 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * API Endpoint: /systems
 	 * Success: return list of systems within the organization
 	 *
-	 * @param currentTimestamp Current time stamp
-	 * @throws Exception will be added to a set then throw later in {{@link #retrieveMultipleStatistics()}}
 	 */
-	public void retrieveSystemInfo(long currentTimestamp) throws Exception {
+	public void retrieveSystemInfo() {
 		// Retrieve system information every 30 seconds
-		if (!systemResponseList.isEmpty() && validDeviceMetaDataRetrievalPeriodTimestamp > currentTimestamp) {
-			return;
-		}
 		try {
 			String systemResponse = this.doGet(QSysReflectConstant.QSYS_URL_SYSTEMS, String.class);
 			JsonNode systems = objectMapper.readTree(systemResponse);
-			synchronized (systemResponseList) {
-				for (int i = 0; i < systems.size(); i++) {
-					SystemResponse sysRes = objectMapper.treeToValue(systems.get(i), SystemResponse.class);
-					systemResponseList.add(sysRes);
-				}
+			systemResponseList.clear();
+			for (int i = 0; i < systems.size(); i++) {
+				SystemResponse sysRes = objectMapper.treeToValue(systems.get(i), SystemResponse.class);
+				systemResponseList.add(sysRes);
 			}
 		} catch (Exception e) {
 			String errorMessage = "System Information Data Retrieval-Error:"
 					+ e.getMessage() + " with cause: " + e.getCause().getMessage();
 			systemErrorMessagesList.add(errorMessage);
-			throw e;
+			logger.error(errorMessage);
 		}
 	}
 

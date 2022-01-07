@@ -245,4 +245,26 @@ public class SystemResponse {
 	public void setCoreName(String coreName) {
 		this.coreName = coreName;
 	}
+
+	/**
+	 * String value of SystemResponse DTO
+	 * @return SystemResponse DTO
+	 */
+	@Override
+	public String toString() {
+		return "SystemResponse{" +
+				"id=" + id +
+				", code='" + code + '\'' +
+				", name='" + name + '\'' +
+				", statusString='" + statusString + '\'' +
+				", normalAlert=" + normalAlert +
+				", warningAlert=" + warningAlert +
+				", faultAlert=" + faultAlert +
+				", unknownAlert=" + unknownAlert +
+				", designName='" + designName + '\'' +
+				", designPlatform='" + designPlatform + '\'' +
+				", uptime=" + uptime +
+				", coreName='" + coreName + '\'' +
+				'}';
+	}
 }

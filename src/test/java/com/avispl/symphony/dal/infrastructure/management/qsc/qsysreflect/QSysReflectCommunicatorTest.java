@@ -176,7 +176,7 @@ class QSysReflectCommunicatorTest {
 		Assert.assertEquals("9440", aggregatedDevice.getDeviceId());
 		Assert.assertEquals("3-3F23AA07A6C4E22F526A88C3A5B0D217", aggregatedDevice.getSerialNumber());
 		Assert.assertEquals("Running", aggregatedDevice.getProperties().get("deviceStatusMessage"));
-		Assert.assertEquals("9.2.1-2110.001", aggregatedDevice.getProperties().get("FirmwareVersion"));
+		Assert.assertEquals("9.2.1-2110.001", aggregatedDevice.getProperties().get("firmwareVersion"));
 		Assert.assertEquals("Schaumburg Office", aggregatedDevice.getProperties().get("siteName"));
 		Assert.assertEquals("Core 510i", aggregatedDevice.getDeviceModel());
 		Assert.assertEquals("CHI-MillPark-DSP01", aggregatedDevice.getDeviceName());
@@ -184,7 +184,7 @@ class QSysReflectCommunicatorTest {
 		Assert.assertEquals("11928", aggregatedDeviceList.get(1).getDeviceId());
 		Assert.assertEquals("3-440F59FA6034C59670FF3C0928929607", aggregatedDeviceList.get(1).getSerialNumber());
 		Assert.assertEquals("Running", aggregatedDeviceList.get(1).getProperties().get("deviceStatusMessage"));
-		Assert.assertEquals("9.2.1-2110.001", aggregatedDeviceList.get(1).getProperties().get("FirmwareVersion"));
+		Assert.assertEquals("9.2.1-2110.001", aggregatedDeviceList.get(1).getProperties().get("firmwareVersion"));
 		Assert.assertEquals("AVI-SPL-LAB", aggregatedDeviceList.get(1).getProperties().get("siteName"));
 		Assert.assertEquals("Core 110f", aggregatedDeviceList.get(1).getDeviceModel());
 		Assert.assertEquals("CeeSalt-Core110f", aggregatedDeviceList.get(1).getDeviceName());
@@ -261,7 +261,7 @@ class QSysReflectCommunicatorTest {
 		Assert.assertEquals("9440", aggregatedDevice.getDeviceId());
 		Assert.assertEquals("3-3F23AA07A6C4E22F526A88C3A5B0D217", aggregatedDevice.getSerialNumber());
 		Assert.assertEquals("Running", aggregatedDevice.getProperties().get("deviceStatusMessage"));
-		Assert.assertEquals("9.2.1-2110.001", aggregatedDevice.getProperties().get("FirmwareVersion"));
+		Assert.assertEquals("9.2.1-2110.001", aggregatedDevice.getProperties().get("firmwareVersion"));
 		Assert.assertEquals("Schaumburg Office", aggregatedDevice.getProperties().get("siteName"));
 		Assert.assertEquals("Core 510i", aggregatedDevice.getDeviceModel());
 		Assert.assertEquals("CHI-MillPark-DSP01", aggregatedDevice.getDeviceName());
