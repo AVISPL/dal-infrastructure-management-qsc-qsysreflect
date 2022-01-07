@@ -239,47 +239,47 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	/**
 	 * Adapter Properties - (Optional) filter option: string of model names (separated by commas)
 	 */
-	private String filterModelName;
+	private String filterModel;
 
 	/**
 	 * Adapter Properties - (Optional) filter option: string of status messages (separated by commas)
 	 */
-	private String filterStatusMessage;
+	private String filterDeviceStatusMessage;
 
 	/**
-	 * Retrieves {@code {@link #filterModelName }}
+	 * Retrieves {@code {@link #filterModel }}
 	 *
-	 * @return value of {@link #filterModelName}
+	 * @return value of {@link #filterModel}
 	 */
-	public String getFilterModelName() {
-		return filterModelName;
+	public String getFilterModel() {
+		return filterModel;
 	}
 
 	/**
 	 * Sets {@code filterDeviceModel}
 	 *
-	 * @param filterModelName the {@code java.lang.String} field
+	 * @param filterModel the {@code java.lang.String} field
 	 */
-	public void setFilterModelName(String filterModelName) {
-		this.filterModelName = filterModelName;
+	public void setFilterModel(String filterModel) {
+		this.filterModel = filterModel;
 	}
 
 	/**
-	 * Retrieves {@code {@link #filterStatusMessage}}
+	 * Retrieves {@code {@link #filterDeviceStatusMessage }}
 	 *
-	 * @return value of {@link #filterStatusMessage}
+	 * @return value of {@link #filterDeviceStatusMessage}
 	 */
-	public String getFilterStatusMessage() {
-		return filterStatusMessage;
+	public String getFilterDeviceStatusMessage() {
+		return filterDeviceStatusMessage;
 	}
 
 	/**
 	 * Sets {@code filterStatusMessage}
 	 *
-	 * @param filterStatusMessage the {@code java.lang.String} field
+	 * @param filterDeviceStatusMessage the {@code java.lang.String} field
 	 */
-	public void setFilterStatusMessage(String filterStatusMessage) {
-		this.filterStatusMessage = filterStatusMessage;
+	public void setFilterDeviceStatusMessage(String filterDeviceStatusMessage) {
+		this.filterDeviceStatusMessage = filterDeviceStatusMessage;
 	}
 
 	/**
@@ -459,10 +459,10 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * @param resultAggregatedDeviceList list of aggregated device
 	 */
 	private List<AggregatedDevice> filterDeviceStatusMessage(List<AggregatedDevice> resultAggregatedDeviceList) {
-		if (!StringUtils.isNullOrEmpty(filterStatusMessage) && !QSysReflectConstant.DOUBLE_QUOTES.equals(filterStatusMessage)) {
+		if (!StringUtils.isNullOrEmpty(filterDeviceStatusMessage) && !QSysReflectConstant.DOUBLE_QUOTES.equals(filterDeviceStatusMessage)) {
 			List<String> filterStatusMessageValues = handleListFilterStatus();
 			if (logger.isDebugEnabled()) {
-				logger.debug(String.format("Applying device status message filter with values(s): %s", filterStatusMessage));
+				logger.debug(String.format("Applying device status message filter with values(s): %s", filterDeviceStatusMessage));
 			}
 			List<AggregatedDevice> filteredAggregatedDevice = new ArrayList<>();
 			for (AggregatedDevice aggregatedDevice : resultAggregatedDeviceList) {
@@ -482,10 +482,10 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * @param resultAggregatedDeviceList list of aggregated device
 	 */
 	private List<AggregatedDevice> filterDeviceModel(List<AggregatedDevice> resultAggregatedDeviceList) {
-		if (!StringUtils.isNullOrEmpty(filterModelName) && !QSysReflectConstant.DOUBLE_QUOTES.equals(filterModelName)) {
+		if (!StringUtils.isNullOrEmpty(filterModel) && !QSysReflectConstant.DOUBLE_QUOTES.equals(filterModel)) {
 			List<String> filterDeviceModelValues = handleListFilterModel();
 			if (logger.isDebugEnabled()) {
-				logger.debug(String.format("Applying device model filter with values(s): %s", filterModelName));
+				logger.debug(String.format("Applying device model filter with values(s): %s", filterModel));
 			}
 			List<AggregatedDevice> filteredAggregatedDevice = new ArrayList<>();
 			for (AggregatedDevice aggregatedDevice : resultAggregatedDeviceList) {
@@ -693,7 +693,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	private List<String> handleListFilterModel() {
 		try {
 			List<String> resultList = new ArrayList<>();
-			String[] listModel = this.getFilterModelName().split(QSysReflectConstant.COMMA);
+			String[] listModel = this.getFilterModel().split(QSysReflectConstant.COMMA);
 			for (int i = 0; i < listModel.length; i++) {
 				listModel[i] = listModel[i].trim();
 			}
@@ -712,7 +712,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	private List<String> handleListFilterStatus() {
 		try {
 			List<String> resultList = new ArrayList<>();
-			String[] listStatus = this.getFilterStatusMessage().split(QSysReflectConstant.COMMA);
+			String[] listStatus = this.getFilterDeviceStatusMessage().split(QSysReflectConstant.COMMA);
 			for (int i = 0; i < listStatus.length; i++) {
 				listStatus[i] = listStatus[i].trim();
 			}

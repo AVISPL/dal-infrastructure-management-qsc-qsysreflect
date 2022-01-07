@@ -123,7 +123,7 @@ class QSysReflectCommunicatorTest {
 	@Tag("Mock")
 	@Test
 	void testFilterStatusMessageIsRunning() throws Exception {
-		qSysReflectCommunicator.setFilterStatusMessage("Running");
+		qSysReflectCommunicator.setFilterDeviceStatusMessage("Running");
 		qSysReflectCommunicator.retrieveMultipleStatistics();
 		Thread.sleep(30000);
 		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
@@ -141,7 +141,7 @@ class QSysReflectCommunicatorTest {
 	@Tag("Mock")
 	@Test
 	void testFilterModelName() throws Exception {
-		qSysReflectCommunicator.setFilterModelName("Core 110f,Core 510i");
+		qSysReflectCommunicator.setFilterModel("Core 110f,Core 510i");
 		qSysReflectCommunicator.retrieveMultipleStatistics();
 		Thread.sleep(30000);
 		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
@@ -190,7 +190,7 @@ class QSysReflectCommunicatorTest {
 	@Tag("Mock")
 	@Test
 	void testFilterModelNameNotExists() throws Exception {
-		qSysReflectCommunicator.setFilterModelName(",Core 100");
+		qSysReflectCommunicator.setFilterModel(",Core 100");
 		qSysReflectCommunicator.retrieveMultipleStatistics();
 		Thread.sleep(30000);
 		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
@@ -221,7 +221,7 @@ class QSysReflectCommunicatorTest {
 	@Tag("Mock")
 	@Test
 	void testFilterStatusMessageNoDeviceInstalled() throws Exception {
-		qSysReflectCommunicator.setFilterStatusMessage("Idle: no device installed");
+		qSysReflectCommunicator.setFilterDeviceStatusMessage("Idle: no device installed");
 		qSysReflectCommunicator.retrieveMultipleStatistics();
 		Thread.sleep(30000);
 		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
