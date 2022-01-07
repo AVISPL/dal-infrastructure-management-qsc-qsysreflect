@@ -24,4 +24,5 @@ public class QSysReflectConstant {
 	public static final String QSYS_URL_CORES = "/cores";
 	public static final String QSYS_BASE_URL = "/api/public/v0";
 	public static final String NONE = "None";
+	public static final String RUNNING = "Running";
 }

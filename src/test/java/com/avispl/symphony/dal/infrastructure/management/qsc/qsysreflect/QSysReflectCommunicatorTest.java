@@ -73,7 +73,7 @@ class QSysReflectCommunicatorTest {
 		Thread.sleep(30000);
 		ExtendedStatistics extendedStatistics = (ExtendedStatistics) qSysReflectCommunicator.getMultipleStatistics().get(0);
 		Map<String, String> stats = extendedStatistics.getStatistics();
-		Assert.assertEquals(29, stats.size());
+		Assert.assertEquals(24, stats.size());
 
 		Assert.assertEquals("9468", stats.get("AVISPL Test Core110f" + "#" + "SystemId"));
 		Assert.assertEquals("3-440F59FA6034C59670FF3C0928929607", stats.get("AVISPL Test Core110f" + "#" + "SystemCode"));
@@ -96,13 +96,6 @@ class QSysReflectCommunicatorTest {
 		Assert.assertEquals("Base Classroom Updated v7", stats.get("Base Classroom Updated v7" + "#" + "DesignName"));
 		Assert.assertEquals("NV-32-H (Core Mode)", stats.get("Base Classroom Updated v7" + "#" + "DesignPlatform"));
 		Assert.assertEquals("nv-32-h-e159", stats.get("Base Classroom Updated v7" + "#" + "CoreName"));
-
-		Assert.assertEquals("94680", stats.get("AVISPL Test" + "#" + "SystemId"));
-		Assert.assertEquals("4-440F59FA6034C59670FF3C092892960E", stats.get("AVISPL Test" + "#" + "SystemCode"));
-		Assert.assertEquals("Idle: no System installed", stats.get("AVISPL Test" + "#" + "SystemStatus"));
-		Assert.assertEquals("CeeSalt_TestCore", stats.get("AVISPL Test" + "#" + "DesignName"));
-		Assert.assertEquals("Core", stats.get("AVISPL Test" + "#" + "DesignPlatform"));
-		Assert.assertEquals("CeeSalt-Core", stats.get("AVISPL Test" + "#" + "CoreName"));
 	}
 
 	/**
@@ -332,7 +325,7 @@ class QSysReflectCommunicatorTest {
 		Thread.sleep(30000);
 		ExtendedStatistics extendedStatistics = (ExtendedStatistics) qSysReflectCommunicator.getMultipleStatistics().get(0);
 		Map<String, String> stats = extendedStatistics.getStatistics();
-		Assert.assertEquals(33, stats.size());
+		Assert.assertEquals(36, stats.size());
 
 		Assert.assertEquals("7725", stats.get("MillenniumPark" + "#" + "SystemId"));
 		Assert.assertEquals("3-3F23AA07A6C4E22F526A88C3A5B0D217", stats.get("MillenniumPark" + "#" + "SystemCode"));

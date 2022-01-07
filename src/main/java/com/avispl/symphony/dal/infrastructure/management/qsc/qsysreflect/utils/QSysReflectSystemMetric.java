@@ -21,7 +21,8 @@ public enum QSysReflectSystemMetric {
 	DESIGN_NAME("DesignName"),
 	DESIGN_PLATFORM("DesignPlatform"),
 	UPTIME("Uptime"),
-	CORE_NAME("CoreName");
+	CORE_NAME("CoreName"),
+	MODEL("Model");
 
 	private final String name;
 
