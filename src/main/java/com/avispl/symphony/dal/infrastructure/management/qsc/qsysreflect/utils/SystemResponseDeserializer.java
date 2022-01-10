@@ -46,11 +46,12 @@ public class SystemResponseDeserializer extends StdDeserializer<SystemResponse> 
 		systemResponse.setName(jsonNode.get("name").asText());
 		systemResponse.setStatusString(jsonNode.get("status").get("message").asText());
 		JsonNode detailsNode = jsonNode.get("status").get("details");
-		if (!detailsNode.isNull()) {
-			systemResponse.setNormalAlert(detailsNode.get("items").get("normal").asInt());
-			systemResponse.setWarningAlert(detailsNode.get("items").get("warning").asInt());
-			systemResponse.setFaultAlert(detailsNode.get("items").get("fault").asInt());
-			systemResponse.setUnknownAlert(detailsNode.get("items").get("unknown").asInt());
+		JsonNode itemsNode = detailsNode.get("items");
+		if (itemsNode != null) {
+			systemResponse.setNormalAlert(itemsNode.get("normal").asInt());
+			systemResponse.setWarningAlert(itemsNode.get("warning").asInt());
+			systemResponse.setFaultAlert(itemsNode.get("fault").asInt());
+			systemResponse.setUnknownAlert(itemsNode.get("unknown").asInt());
 		}
 		JsonNode designNode = jsonNode.get("design");
 		systemResponse.setDesignName(designNode.get("name").asText());
