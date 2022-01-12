@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 AVI-SPL, Inc. All Rights Reserved.
+ * Copyright (c) 2022 AVI-SPL, Inc. All Rights Reserved.
  */
 package com.avispl.symphony.dal.infrastructure.management.qsc.qsysreflect.utils;
 
@@ -19,7 +19,6 @@ public class QSysReflectConstant {
 	public static final String DEVICE_UPTIME = "deviceUptime";
 	public static final String DEVICE_STATUS_MESSAGE = "deviceStatusMessage";
 	public static final String DOUBLE_QUOTES = "";
-	public static final String HASH = "#";
 	public static final String QSYS_URL_SYSTEMS = "/systems";
 	public static final String QSYS_URL_CORES = "/cores";
 	public static final String QSYS_BASE_URL = "/api/public/v0";

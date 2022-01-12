@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 AVI-SPL, Inc. All Rights Reserved.
+ * Copyright (c) 2022 AVI-SPL, Inc. All Rights Reserved.
  */
 package com.avispl.symphony.dal.infrastructure.management.qsc.qsysreflect;
 
@@ -352,8 +352,8 @@ class QSysReflectCommunicatorTest {
 		Assert.assertEquals("9468", stats.get("AVISPL Test Core110f" + "#" + "SystemId"));
 		Assert.assertEquals("3-440F59FA6034C59670FF3C0928929607", stats.get("AVISPL Test Core110f" + "#" + "SystemCode"));
 		Assert.assertEquals("Running", stats.get("AVISPL Test Core110f" + "#" + "SystemStatus"));
-		Assert.assertEquals("15", stats.get("AVISPL Test Core110f" + "#" + "AlertsNormal"));
-		Assert.assertEquals("0", stats.get("AVISPL Test Core110f" + "#" + "AlertsWarning"));
+		Assert.assertEquals("14", stats.get("AVISPL Test Core110f" + "#" + "AlertsNormal"));
+		Assert.assertEquals("1", stats.get("AVISPL Test Core110f" + "#" + "AlertsWarning"));
 		Assert.assertEquals("0", stats.get("AVISPL Test Core110f" + "#" + "AlertsFault"));
 		Assert.assertEquals("0", stats.get("AVISPL Test Core110f" + "#" + "AlertsUnknown"));
 		Assert.assertEquals("CeeSalt_TestCore_v3.1", stats.get("AVISPL Test Core110f" + "#" + "DesignName"));
