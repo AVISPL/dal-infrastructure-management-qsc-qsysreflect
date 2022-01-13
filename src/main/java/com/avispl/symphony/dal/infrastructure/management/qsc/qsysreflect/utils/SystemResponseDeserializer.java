@@ -41,10 +41,22 @@ public class SystemResponseDeserializer extends StdDeserializer<SystemResponse> 
 	public SystemResponse deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
 		JsonNode jsonNode = jsonParser.getCodec().readTree(jsonParser);
 		SystemResponse systemResponse = new SystemResponse();
-		systemResponse.setId(jsonNode.get("id").asInt());
-		systemResponse.setCode(jsonNode.get("code").asText());
-		systemResponse.setName(jsonNode.get("name").asText());
-		systemResponse.setStatusString(jsonNode.get("status").get("message").asText());
+		JsonNode idNode = jsonNode.get("id");
+		if (idNode != null) {
+			systemResponse.setId(jsonNode.get("id").asInt());
+		}
+		JsonNode codeNode = jsonNode.get("code");
+		if (codeNode != null) {
+			systemResponse.setCode(codeNode.asText());
+		}
+		JsonNode nameNode = jsonNode.get("name");
+		if (nameNode != null) {
+			systemResponse.setName(nameNode.asText());
+		}
+		JsonNode messageNode = jsonNode.get("status").get("message");
+		if (messageNode != null) {
+			systemResponse.setStatusString(messageNode.asText());
+		}
 		JsonNode detailsNode = jsonNode.get("status").get("details");
 		JsonNode itemsNode = detailsNode.get("items");
 		if (itemsNode != null) {
@@ -54,10 +66,18 @@ public class SystemResponseDeserializer extends StdDeserializer<SystemResponse> 
 			systemResponse.setUnknownAlert(itemsNode.get("unknown").asInt());
 		}
 		JsonNode designNode = jsonNode.get("design");
-		systemResponse.setDesignName(designNode.get("name").asText());
-		systemResponse.setDesignPlatform(designNode.get("platform").asText());
-		systemResponse.setUptime(designNode.get("uptime").asLong());
-		systemResponse.setCoreName(jsonNode.get("core").get("name").asText());
+		if (designNode.get("name") != null) {
+			systemResponse.setDesignName(designNode.get("name").asText());
+		}
+		if (designNode.get("platform") != null) {
+			systemResponse.setDesignPlatform(designNode.get("platform").asText());
+		}
+		if (designNode.get("uptime") != null) {
+			systemResponse.setUptime(designNode.get("uptime").asLong());
+		}
+		if (jsonNode.get("core").get("name") != null) {
+			systemResponse.setCoreName(jsonNode.get("core").get("name").asText());
+		}
 		return systemResponse;
 	}
 }

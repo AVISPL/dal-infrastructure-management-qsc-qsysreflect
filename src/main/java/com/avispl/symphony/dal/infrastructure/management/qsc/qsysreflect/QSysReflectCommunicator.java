@@ -3,6 +3,7 @@
  */
 package com.avispl.symphony.dal.infrastructure.management.qsc.qsysreflect;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -203,6 +204,8 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 */
 	private long nextDevicesCollectionIterationTimestamp;
 
+	private AggregatedDeviceProcessor aggregatedDeviceProcessor;
+
 	/**
 	 * Executor that runs all the async operations, that {@link #deviceDataLoader} is posting
 	 */
@@ -307,6 +310,17 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 */
 	public void setDeviceMetaDataRetrievalTimeout(long deviceMetaDataRetrievalTimeout) {
 		this.deviceMetaDataRetrievalTimeout = Math.max(defaultMetaDataTimeout, deviceMetaDataRetrievalTimeout);
+	}
+
+	/**
+	 * Build instance of QSysReflectCommunicator
+	 * Setup aggregated devices processor
+	 *
+	 * @throws IOException if unable to locate mapping ymp file or properties file
+	 */
+	public QSysReflectCommunicator() throws IOException {
+		Map<String, PropertiesMapping> mapping = new PropertiesMappingParser().loadYML("qsysreflect/model-mapping.yml", getClass());
+		aggregatedDeviceProcessor = new AggregatedDeviceProcessor(mapping);
 	}
 
 	/**
@@ -565,8 +579,6 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 */
 	private void retrieveDevices() {
 		try {
-			Map<String, PropertiesMapping> mapping = new PropertiesMappingParser().loadYML("qsysreflect/model-mapping.yml", getClass());
-			AggregatedDeviceProcessor aggregatedDeviceProcessor = new AggregatedDeviceProcessor(mapping);
 			String responseDeviceList = this.doGet(QSysReflectConstant.QSYS_URL_CORES, String.class);
 			JsonNode devices = objectMapper.readTree(responseDeviceList);
 			for (int i = 0; i < devices.size(); i++) {
