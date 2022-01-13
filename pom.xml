@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.avispl.symphony.dal.infrastructure.management.qsc.qsysreflect</groupId>
-  <artifactId>dal-infrastructure-management-qsc-qsysreflect</artifactId>
+  <artifactId>symphony-dal-infrastructure-management-qsc-qsysreflect</artifactId>
   <version>1.0.0</version>
 
   <properties>
