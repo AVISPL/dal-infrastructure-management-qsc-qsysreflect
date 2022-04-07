@@ -6,6 +6,7 @@ on:
       - develop
       - 'feature/**'
       - 'bugfix/**'
+      - 'hotfix/**'
 
 jobs:
   prep:
@@ -55,7 +56,7 @@ jobs:
         run: mvn pmd:check
       - id: getfilename
         run: echo "::set-output name=file::$(ls target/symphony-dal-infrastructure-management-qsc-qsysreflect-${{ needs.versiongenerate.outputs.version }}.jar)"
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v2
         with:
           name: QSysReflect
           path: ${{ steps.getfilename.outputs.file }}
