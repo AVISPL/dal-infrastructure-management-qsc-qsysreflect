@@ -29,4 +29,6 @@ public class QSysReflectConstant {
 	public static final String OK = "OK";
 	public static final String DEVICE_TYPE = "deviceType";
 	public static final String CORE = "Core";
+	public static final String MODEL_MAPPING_QSYS_CORE = "qsysreflect/model-mapping.yml";
+	public static final String MODEL_MAPPING_OTHER_THAN_QSYS_CORE = "qsysreflect/model-mapping-v2.yml";
 }

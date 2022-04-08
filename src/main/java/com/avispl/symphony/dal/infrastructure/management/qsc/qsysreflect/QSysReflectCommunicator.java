@@ -90,12 +90,12 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 					continue mainloop;
 				}
 				if (logger.isDebugEnabled()) {
-					logger.debug("Fetching devices and system information list");
+					logger.debug("Fetching Q-Sys core devices and system information list");
 				}
 				long currentTimestamp = System.currentTimeMillis();
 				retrieveInfo(currentTimestamp);
 				if (logger.isDebugEnabled()) {
-					logger.debug("Fetching system devices list");
+					logger.debug("Fetching other than Q-SYS Core device list");
 				}
 				if (!systemResponseList.isEmpty() && validDeviceMetaDataRetrievalPeriodTimestamp <= currentTimestamp) {
 					validDeviceMetaDataRetrievalPeriodTimestamp = currentTimestamp + deviceMetaDataRetrievalTimeout;
@@ -149,7 +149,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 						logger.debug("Applying filter options");
 					}
 
-					if ((!StringUtils.isNullOrEmpty(filterSystemName) && !systemResponseFilterList.isEmpty()) || StringUtils.isNullOrEmpty(filterSystemName)) {
+					if (StringUtils.isNullOrEmpty(filterSystemName) || !systemResponseFilterList.isEmpty()) {
 						getFilteredAggregatedDeviceList();
 					} else {
 						aggregatedDeviceList.clear();
@@ -416,7 +416,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * @throws IOException if unable to locate mapping ymp file or properties file
 	 */
 	public QSysReflectCommunicator() throws IOException {
-		Map<String, PropertiesMapping> mapping = new PropertiesMappingParser().loadYML("qsysreflect/model-mapping.yml", getClass());
+		Map<String, PropertiesMapping> mapping = new PropertiesMappingParser().loadYML(QSysReflectConstant.MODEL_MAPPING_QSYS_CORE, getClass());
 		aggregatedDeviceProcessor = new AggregatedDeviceProcessor(mapping);
 	}
 
@@ -579,7 +579,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 */
 	private void filterDeviceStatusMessage() {
 		if (!StringUtils.isNullOrEmpty(filterDeviceStatusMessage) && !QSysReflectConstant.DOUBLE_QUOTES.equals(filterDeviceStatusMessage)) {
-			List<String> filterStatusMessageValues = handleListFilterStatus();
+			List<String> filterStatusMessageValues = handleListExtractFilter(filterDeviceStatusMessage);
 			if (logger.isDebugEnabled()) {
 				logger.debug(String.format("Applying device status message filter with values(s): %s", filterDeviceStatusMessage));
 			}
@@ -603,7 +603,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 */
 	private void filterType() {
 		if (!StringUtils.isNullOrEmpty(filterType) && !QSysReflectConstant.DOUBLE_QUOTES.equals(filterType)) {
-			List<String> filterTypeValues = handleListFilterType();
+			List<String> filterTypeValues = handleListExtractFilter(filterType);
 			if (logger.isDebugEnabled()) {
 				logger.debug(String.format("Applying device status message filter with values(s): %s", filterType));
 			}
@@ -627,7 +627,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 */
 	private void filterDeviceModel() {
 		if (!StringUtils.isNullOrEmpty(filterModel) && !QSysReflectConstant.DOUBLE_QUOTES.equals(filterModel)) {
-			List<String> filterDeviceModelValues = handleListFilterModel();
+			List<String> filterDeviceModelValues = handleListExtractFilter(filterModel);
 			if (logger.isDebugEnabled()) {
 				logger.debug(String.format("Applying device model filter with values(s): %s", filterModel));
 			}
@@ -750,7 +750,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 				deviceStatusMessageMap.put(currentDevice.get(QSysReflectConstant.ID).asText(), currentDevice.get(QSysReflectConstant.STATUS)
 						.get(QSysReflectConstant.MESSAGE).asText());
 			}
-			Map<String, PropertiesMapping> mapping = new PropertiesMappingParser().loadYML("qsysreflect/model-mapping-v2.yml", getClass());
+			Map<String, PropertiesMapping> mapping = new PropertiesMappingParser().loadYML(QSysReflectConstant.MODEL_MAPPING_OTHER_THAN_QSYS_CORE, getClass());
 			aggregatedDeviceProcessor = new AggregatedDeviceProcessor(mapping);
 			aggregatedDeviceList.addAll(aggregatedDeviceProcessor.extractDevices(responseDeviceList));
 			if (logger.isDebugEnabled()) {
@@ -838,7 +838,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	private void filterBySystemName() {
 		systemResponseFilterList.clear();
 		if (!StringUtils.isNullOrEmpty(filterSystemName) && !QSysReflectConstant.DOUBLE_QUOTES.equals(filterSystemName)) {
-			List<String> filterSystemNameValues = handleListFilterSystemName();
+			List<String> filterSystemNameValues = handleListExtractFilter(filterSystemName);
 			if (logger.isDebugEnabled()) {
 				logger.debug(String.format("Applying system name filter with values(s): %s", filterSystemName));
 			}
@@ -903,63 +903,6 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	}
 
 	/**
-	 * Split filterModelName (separated by commas) to array of models
-	 *
-	 * @return list string of device model
-	 */
-	private List<String> handleListFilterModel() {
-		try {
-			List<String> resultList = new ArrayList<>();
-			String[] listModel = this.getFilterModel().split(QSysReflectConstant.COMMA);
-			for (int i = 0; i < listModel.length; i++) {
-				listModel[i] = listModel[i].trim();
-			}
-			Collections.addAll(resultList, listModel);
-			return resultList;
-		} catch (Exception e) {
-			throw new IllegalArgumentException("Fail to split string, input from adapter properties is wrong", e);
-		}
-	}
-
-	/**
-	 * Split filterStatusMessage (separated by commas) to array of status messages
-	 *
-	 * @return list string of status message
-	 */
-	private List<String> handleListFilterStatus() {
-		try {
-			List<String> resultList = new ArrayList<>();
-			String[] listStatus = this.getFilterDeviceStatusMessage().split(QSysReflectConstant.COMMA);
-			for (int i = 0; i < listStatus.length; i++) {
-				listStatus[i] = listStatus[i].trim();
-			}
-			Collections.addAll(resultList, listStatus);
-			return resultList;
-		} catch (Exception e) {
-			throw new IllegalArgumentException("Fail to split string, input from adapter properties is wrong", e);
-		}
-	}
-
-	/**
-	 * Split filterType (separated by commas) to array of status messages
-	 *
-	 * @return list string of type
-	 */
-	private List<String> handleListFilterType() {
-		try {
-			List<String> resultList = new ArrayList<>();
-			String[] listStatus = this.getFilterType().split(QSysReflectConstant.COMMA);
-			for (int i = 0; i < listStatus.length; i++) {
-				listStatus[i] = listStatus[i].trim();
-			}
-			Collections.addAll(resultList, listStatus);
-			return resultList;
-		} catch (Exception e) {
-			throw new IllegalArgumentException("Fail to split string, input from adapter properties is wrong", e);
-		}
-	}
-
-	/**
 	 * Check API token validation
 	 *
 	 * @return boolean
@@ -969,18 +912,18 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	}
 
 	/**
-	 * Split filterSystemName (separated by commas) to array of system name
+	 * Split name (separated by commas) to array
 	 *
-	 * @return list string of system name
+	 * @return list string
 	 */
-	private List<String> handleListFilterSystemName() {
+	private List<String> handleListExtractFilter(String filterName) {
 		try {
 			List<String> resultList = new ArrayList<>();
-			String[] listModel = this.getFilterSystemName().split(QSysReflectConstant.COMMA);
-			for (int i = 0; i < listModel.length; i++) {
-				listModel[i] = listModel[i].trim();
+			String[] listName = filterName.split(QSysReflectConstant.COMMA);
+			for (int i = 0; i < listName.length; i++) {
+				listName[i] = listName[i].trim();
 			}
-			Collections.addAll(resultList, listModel);
+			Collections.addAll(resultList, listName);
 			return resultList;
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Fail to split string, input from adapter properties is wrong", e);
