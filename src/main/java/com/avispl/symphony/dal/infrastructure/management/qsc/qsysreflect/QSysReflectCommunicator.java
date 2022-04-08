@@ -670,11 +670,12 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 			String startAt = properties.get(QSysReflectConstant.START_AT);
 			String upTime = properties.get(QSysReflectConstant.DEVICE_UPTIME);
 
-			if (!StringUtils.isNullOrEmpty(startAt)) {
-				properties.put(QSysReflectConstant.START_AT, handleNormalizeUptime(Long.parseLong(startAt)));
-			}
 			if (!StringUtils.isNullOrEmpty(upTime)) {
 				properties.put(QSysReflectConstant.DEVICE_UPTIME, handleNormalizeUptime(Long.parseLong(upTime)));
+			} else if (!StringUtils.isNullOrEmpty(startAt)) {
+				properties.put(QSysReflectConstant.START_AT, handleNormalizeUptime(Long.parseLong(startAt)));
+			} else {
+				properties.put(QSysReflectConstant.START_AT, QSysReflectConstant.NONE);
 			}
 			resultAggregatedDeviceList.set(i, aggregatedDevice);
 		}
