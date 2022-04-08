@@ -99,7 +99,6 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 				}
 				if (!systemResponseList.isEmpty() && validDeviceMetaDataRetrievalPeriodTimestamp <= currentTimestamp) {
 					validDeviceMetaDataRetrievalPeriodTimestamp = currentTimestamp + deviceMetaDataRetrievalTimeout;
-					synchronized (systemResponseList) {
 						filterBySystemName();
 						List<SystemResponse> systemResponseFilter = systemResponseFilterList;
 						if (StringUtils.isNullOrEmpty(filterSystemName)) {
@@ -124,7 +123,6 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 							}
 							devicesExecutionPool.removeIf(Future::isDone);
 						} while (!devicesExecutionPool.isEmpty());
-					}
 				}
 				if (!inProgress) {
 					break mainloop;
@@ -575,44 +573,23 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	}
 
 	/**
-	 * Filter list of aggregated devices based on device status message
+	 * Populate filter list of aggregated devices based
+	 *
+	 * @param filterName the filterName is name of filter
+	 * @param propertiesName the propertiesName is type filter
 	 */
-	private void filterDeviceStatusMessage() {
-		if (!StringUtils.isNullOrEmpty(filterDeviceStatusMessage) && !QSysReflectConstant.DOUBLE_QUOTES.equals(filterDeviceStatusMessage)) {
-			List<String> filterStatusMessageValues = handleListExtractFilter(filterDeviceStatusMessage);
+	private void populateFilter(String filterName, String propertiesName) {
+		if (!StringUtils.isNullOrEmpty(filterName) && !QSysReflectConstant.DOUBLE_QUOTES.equals(filterName)) {
+			List<String> filterTypeValues = handleListExtractFilter(filterName);
 			if (logger.isDebugEnabled()) {
-				logger.debug(String.format("Applying device status message filter with values(s): %s", filterDeviceStatusMessage));
-			}
-			List<AggregatedDevice> filteredAggregatedDevice = new ArrayList<>();
-			synchronized (aggregatedDeviceList) {
-				for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
-					Map<String, String> properties = aggregatedDevice.getProperties();
-					for (String deviceMessage : filterStatusMessageValues) {
-						if (deviceMessage.equals(properties.get(QSysReflectConstant.DEVICE_STATUS_MESSAGE))) {
-							filteredAggregatedDevice.add(aggregatedDevice);
-						}
-					}
-				}
-			}
-			aggregatedDeviceList = filteredAggregatedDevice;
-		}
-	}
-
-	/**
-	 * Filter list of aggregated devices based on device type
-	 */
-	private void filterType() {
-		if (!StringUtils.isNullOrEmpty(filterType) && !QSysReflectConstant.DOUBLE_QUOTES.equals(filterType)) {
-			List<String> filterTypeValues = handleListExtractFilter(filterType);
-			if (logger.isDebugEnabled()) {
-				logger.debug(String.format("Applying device status message filter with values(s): %s", filterType));
+				logger.debug(String.format("Applying device filter with values(s): %s", filterName));
 			}
 			List<AggregatedDevice> filteredAggregatedDevice = new ArrayList<>();
 			synchronized (aggregatedDeviceList) {
 				for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
 					Map<String, String> properties = aggregatedDevice.getProperties();
 					for (String type : filterTypeValues) {
-						if (type.equals(properties.get(QSysReflectConstant.DEVICE_TYPE))) {
+						if (type.equals(properties.get(propertiesName))) {
 							filteredAggregatedDevice.add(aggregatedDevice);
 						}
 					}
@@ -828,8 +805,8 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	private void getFilteredAggregatedDeviceList() {
 		populateDeviceStatusMessage();
 		filterDeviceModel();
-		filterDeviceStatusMessage();
-		filterType();
+		populateFilter(filterDeviceStatusMessage, QSysReflectConstant.DEVICE_STATUS_MESSAGE);
+		populateFilter(filterType, QSysReflectConstant.DEVICE_TYPE);
 	}
 
 	/**
@@ -914,6 +891,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	/**
 	 * Split name (separated by commas) to array
 	 *
+	 * @param filterName the filterName is name filter
 	 * @return list string
 	 */
 	private List<String> handleListExtractFilter(String filterName) {
