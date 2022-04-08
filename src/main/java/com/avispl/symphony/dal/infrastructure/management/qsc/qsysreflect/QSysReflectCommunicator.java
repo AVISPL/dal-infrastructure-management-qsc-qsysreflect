@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -29,7 +30,6 @@ import com.avispl.symphony.api.dal.dto.monitor.aggregator.AggregatedDevice;
 import com.avispl.symphony.api.dal.error.ResourceNotReachableException;
 import com.avispl.symphony.api.dal.monitor.Monitorable;
 import com.avispl.symphony.api.dal.monitor.aggregator.Aggregator;
-
 import com.avispl.symphony.dal.aggregator.parser.AggregatedDeviceProcessor;
 import com.avispl.symphony.dal.aggregator.parser.PropertiesMapping;
 import com.avispl.symphony.dal.aggregator.parser.PropertiesMappingParser;
@@ -52,12 +52,11 @@ import com.avispl.symphony.dal.util.StringUtils;
  * <li> - Serial Number</li>
  * </ul>
  *
- * @author Duy Nguyen, Ivan
- * @version 1.0.0
- * @since 1.0.0
+ * @author Duy Nguyen, Ivan, Harry
+ * @version 2.0.0
+ * @since 2.0.0
  */
 public class QSysReflectCommunicator extends RestCommunicator implements Aggregator, Monitorable {
-
 	/**
 	 * Process that is running constantly and triggers collecting data from Q-Sys API endpoints, based on the given timeouts and thresholds.
 	 *
@@ -91,9 +90,40 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 					continue mainloop;
 				}
 				if (logger.isDebugEnabled()) {
-					logger.debug("Fetching devices and system information list");
+					logger.debug("Fetching Q-Sys core devices and system information list");
 				}
-				retrieveInfo();
+				long currentTimestamp = System.currentTimeMillis();
+				retrieveInfo(currentTimestamp);
+				if (logger.isDebugEnabled()) {
+					logger.debug("Fetching other than Q-SYS Core device list");
+				}
+				if (!systemResponseList.isEmpty() && validDeviceMetaDataRetrievalPeriodTimestamp <= currentTimestamp) {
+					validDeviceMetaDataRetrievalPeriodTimestamp = currentTimestamp + deviceMetaDataRetrievalTimeout;
+						filterBySystemName();
+						List<SystemResponse> systemResponseFilter = systemResponseFilterList;
+						if (StringUtils.isNullOrEmpty(filterSystemName)) {
+							systemResponseFilter = systemResponseList;
+						}
+						for (SystemResponse systemResponse : systemResponseFilter) {
+							devicesExecutionPool.add(executorService.submit(() -> {
+								try {
+									populateDeviceDetails(String.valueOf(systemResponse.getId()));
+								} catch (Exception e) {
+									logger.error(String.format("Exception during retrieve '%s' data processing.", systemResponse.getName()), e);
+								}
+							}));
+						}
+						do {
+							try {
+								TimeUnit.MILLISECONDS.sleep(500);
+							} catch (InterruptedException e) {
+								if (!inProgress) {
+									break;
+								}
+							}
+							devicesExecutionPool.removeIf(Future::isDone);
+						} while (!devicesExecutionPool.isEmpty());
+				}
 				if (!inProgress) {
 					break mainloop;
 				}
@@ -102,6 +132,8 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 				if (aggregatedDevicesCount == 0) {
 					continue mainloop;
 				}
+
+				nextDevicesCollectionIterationTimestamp = System.currentTimeMillis();
 				while (nextDevicesCollectionIterationTimestamp > System.currentTimeMillis()) {
 					try {
 						TimeUnit.MILLISECONDS.sleep(1000);
@@ -114,11 +146,17 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 					if (logger.isDebugEnabled()) {
 						logger.debug("Applying filter options");
 					}
-					getFilteredAggregatedDeviceList();
+
+					if (StringUtils.isNullOrEmpty(filterSystemName) || !systemResponseFilterList.isEmpty()) {
+						getFilteredAggregatedDeviceList();
+					} else {
+						aggregatedDeviceList.clear();
+					}
 					if (logger.isDebugEnabled()) {
 						logger.debug("Aggregated devices after applying filter: " + aggregatedDeviceList);
 					}
 				}
+
 				// We don't want to fetch devices statuses too often, so by default it's currentTime + 30s
 				// otherwise - the variable is reset by the retrieveMultipleStatistics() call, which
 				// launches devices detailed statistics collection
@@ -138,6 +176,17 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 			inProgress = false;
 		}
 	}
+
+	/**
+	 * Executor that runs all the async operations, that {@link #deviceDataLoader} is posting and
+	 * {@link #devicesExecutionPool} is keeping track of
+	 */
+	private static ExecutorService executorService;
+
+	/**
+	 * Pool for keeping all the async operations in, to track any operations in progress and cancel them if needed
+	 */
+	private List<Future> devicesExecutionPool = new ArrayList<>();
 
 	/**
 	 * Update the status of the device.
@@ -207,11 +256,6 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	private AggregatedDeviceProcessor aggregatedDeviceProcessor;
 
 	/**
-	 * Executor that runs all the async operations, that {@link #deviceDataLoader} is posting
-	 */
-	private static ExecutorService executorService;
-
-	/**
 	 * Runner service responsible for collecting data
 	 */
 	private QSysDeviceDataLoader deviceDataLoader;
@@ -230,6 +274,11 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * List of System Response
 	 */
 	private List<SystemResponse> systemResponseList = Collections.synchronizedList(new ArrayList<>());
+
+	/**
+	 * List of System Response filter
+	 */
+	private List<SystemResponse> systemResponseFilterList = Collections.synchronizedList(new ArrayList<>());
 
 	/**
 	 * List error message occur while fetching aggregated devices
@@ -257,6 +306,52 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * Adapter Properties - (Optional) filter option: string of status messages (separated by commas)
 	 */
 	private String filterDeviceStatusMessage;
+
+	/**
+	 * Adapter Properties - (Optional) filter option: string of system name (separated by commas)
+	 */
+	private String filterSystemName;
+
+	/**
+	 * Adapter Properties - (Optional) filter option: string of type (separated by commas)
+	 */
+	private String filterType;
+
+	/**
+	 * Retrieves {@code {@link #filterSystemName}}
+	 *
+	 * @return value of {@link #filterSystemName}
+	 */
+	public String getFilterSystemName() {
+		return filterSystemName;
+	}
+
+	/**
+	 * Sets {@code filterSystemName}
+	 *
+	 * @param filterSystemName the {@code java.lang.String} field
+	 */
+	public void setFilterSystemName(String filterSystemName) {
+		this.filterSystemName = filterSystemName;
+	}
+
+	/**
+	 * Retrieves {@code {@link #filterType}}
+	 *
+	 * @return value of {@link #filterType}
+	 */
+	public String getFilterType() {
+		return filterType;
+	}
+
+	/**
+	 * Sets {@code filterType}
+	 *
+	 * @param filterType the {@code java.lang.String} field
+	 */
+	public void setFilterType(String filterType) {
+		this.filterType = filterType;
+	}
 
 	/**
 	 * Retrieves {@code {@link #filterModel }}
@@ -319,7 +414,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * @throws IOException if unable to locate mapping ymp file or properties file
 	 */
 	public QSysReflectCommunicator() throws IOException {
-		Map<String, PropertiesMapping> mapping = new PropertiesMappingParser().loadYML("qsysreflect/model-mapping.yml", getClass());
+		Map<String, PropertiesMapping> mapping = new PropertiesMappingParser().loadYML(QSysReflectConstant.MODEL_MAPPING_QSYS_CORE, getClass());
 		aggregatedDeviceProcessor = new AggregatedDeviceProcessor(mapping);
 	}
 
@@ -334,7 +429,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 		apiToken = this.getPassword();
 		this.setBaseUri(QSysReflectConstant.QSYS_BASE_URL);
 		if (checkValidApiToken()) {
-			executorService = Executors.newSingleThreadExecutor();
+			executorService = Executors.newFixedThreadPool(8);
 			executorService.submit(deviceDataLoader = new QSysDeviceDataLoader());
 			validDeviceMetaDataRetrievalPeriodTimestamp = System.currentTimeMillis();
 		}
@@ -359,6 +454,10 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 			executorService.shutdownNow();
 			executorService = null;
 		}
+
+		devicesExecutionPool.forEach(future -> future.cancel(true));
+		devicesExecutionPool.clear();
+
 		aggregatedDeviceList.clear();
 		systemResponseList.clear();
 		deviceErrorMessagesList.clear();
@@ -463,7 +562,9 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 				for (Map.Entry<String, String> entry : aggregatedDevice.getProperties().entrySet()) {
 					newProperties.put(entry.getKey(), entry.getValue());
 				}
-				newClonedAggregatedDevice.setDeviceOnline(deviceStatusMessageMap.get(aggregatedDevice.getDeviceId()).equals(QSysReflectConstant.RUNNING));
+				boolean deviceOnline =
+						deviceStatusMessageMap.get(aggregatedDevice.getDeviceId()).equals(QSysReflectConstant.RUNNING) || deviceStatusMessageMap.get(aggregatedDevice.getDeviceId()).equals(QSysReflectConstant.OK);
+				newClonedAggregatedDevice.setDeviceOnline(deviceOnline);
 				newClonedAggregatedDevice.setProperties(newProperties);
 				resultAggregatedDeviceList.add(newClonedAggregatedDevice);
 			}
@@ -472,20 +573,25 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	}
 
 	/**
-	 * Filter list of aggregated devices based on device status message
+	 * Populate filter list of aggregated devices based
+	 *
+	 * @param filterName the filterName is name of filter
+	 * @param propertiesName the propertiesName is type filter
 	 */
-	private void filterDeviceStatusMessage() {
-		if (!StringUtils.isNullOrEmpty(filterDeviceStatusMessage) && !QSysReflectConstant.DOUBLE_QUOTES.equals(filterDeviceStatusMessage)) {
-			List<String> filterStatusMessageValues = handleListFilterStatus();
+	private void populateFilter(String filterName, String propertiesName) {
+		if (!StringUtils.isNullOrEmpty(filterName) && !QSysReflectConstant.DOUBLE_QUOTES.equals(filterName)) {
+			List<String> filterTypeValues = handleListExtractFilter(filterName);
 			if (logger.isDebugEnabled()) {
-				logger.debug(String.format("Applying device status message filter with values(s): %s", filterDeviceStatusMessage));
+				logger.debug(String.format("Applying device filter with values(s): %s", filterName));
 			}
 			List<AggregatedDevice> filteredAggregatedDevice = new ArrayList<>();
 			synchronized (aggregatedDeviceList) {
 				for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
 					Map<String, String> properties = aggregatedDevice.getProperties();
-					if (filterStatusMessageValues.contains(properties.get(QSysReflectConstant.DEVICE_STATUS_MESSAGE))) {
-						filteredAggregatedDevice.add(aggregatedDevice);
+					for (String type : filterTypeValues) {
+						if (type.equals(properties.get(propertiesName))) {
+							filteredAggregatedDevice.add(aggregatedDevice);
+						}
 					}
 				}
 			}
@@ -498,15 +604,17 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 */
 	private void filterDeviceModel() {
 		if (!StringUtils.isNullOrEmpty(filterModel) && !QSysReflectConstant.DOUBLE_QUOTES.equals(filterModel)) {
-			List<String> filterDeviceModelValues = handleListFilterModel();
+			List<String> filterDeviceModelValues = handleListExtractFilter(filterModel);
 			if (logger.isDebugEnabled()) {
 				logger.debug(String.format("Applying device model filter with values(s): %s", filterModel));
 			}
 			List<AggregatedDevice> filteredAggregatedDevice = new ArrayList<>();
 			synchronized (aggregatedDeviceList) {
 				for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
-					if (filterDeviceModelValues.contains(aggregatedDevice.getDeviceModel())) {
-						filteredAggregatedDevice.add(aggregatedDevice);
+					for (String modelName : filterDeviceModelValues) {
+						if (modelName.equals(aggregatedDevice.getDeviceModel())) {
+							filteredAggregatedDevice.add(aggregatedDevice);
+						}
 					}
 				}
 			}
@@ -536,7 +644,16 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 		for (int i = 0; i < resultAggregatedDeviceList.size(); i++) {
 			AggregatedDevice aggregatedDevice = resultAggregatedDeviceList.get(i);
 			Map<String, String> properties = aggregatedDevice.getProperties();
-			properties.put(QSysReflectConstant.DEVICE_UPTIME, handleNormalizeUptime(Long.parseLong(properties.get(QSysReflectConstant.DEVICE_UPTIME))));
+			String startAt = properties.get(QSysReflectConstant.START_AT);
+			String uptime = properties.get(QSysReflectConstant.DEVICE_UPTIME);
+
+			if (!StringUtils.isNullOrEmpty(uptime)) {
+				properties.put(QSysReflectConstant.DEVICE_UPTIME, handleNormalizeUptime(Long.parseLong(uptime)));
+			} else if (!StringUtils.isNullOrEmpty(startAt)) {
+				properties.put(QSysReflectConstant.START_AT, handleNormalizeUptime(Long.parseLong(startAt)));
+			} else {
+				properties.put(QSysReflectConstant.START_AT, QSysReflectConstant.NONE);
+			}
 			resultAggregatedDeviceList.set(i, aggregatedDevice);
 		}
 	}
@@ -545,8 +662,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * Retrieve aggregated devices and system information data -
 	 * and set next device/system collection iteration timestamp
 	 */
-	private void retrieveInfo() {
-		long currentTimestamp = System.currentTimeMillis();
+	private void retrieveInfo(long currentTimestamp) {
 		if (validDeviceMetaDataRetrievalPeriodTimestamp > currentTimestamp) {
 			if (logger.isDebugEnabled()) {
 				logger.debug(String.format("Aggregated devices data and system information retrieval is in cool down. %s seconds left",
@@ -560,7 +676,6 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 			}
 			return;
 		}
-		validDeviceMetaDataRetrievalPeriodTimestamp = currentTimestamp + deviceMetaDataRetrievalTimeout;
 		retrieveDevices();
 		if (logger.isDebugEnabled()) {
 			logger.debug(String.format("New fetched devices list: %s", aggregatedDeviceList));
@@ -569,7 +684,6 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 		if (logger.isDebugEnabled()) {
 			logger.debug(String.format("New fetched system information list: %s", systemResponseList));
 		}
-		nextDevicesCollectionIterationTimestamp = System.currentTimeMillis();
 	}
 
 	/**
@@ -587,6 +701,38 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 						.get(QSysReflectConstant.MESSAGE).asText());
 			}
 			aggregatedDeviceList = new ArrayList<>(aggregatedDeviceProcessor.extractDevices(devices));
+			for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
+				Map<String, String> stats = aggregatedDevice.getProperties();
+				stats.put(QSysReflectConstant.DEVICE_TYPE, QSysReflectConstant.CORE);
+				aggregatedDevice.setProperties(stats);
+			}
+		} catch (Exception e) {
+			String errorMessage = String.format("Aggregated Device Data Retrieval-Error: %s with cause: %s", e.getMessage(), e.getCause().getMessage());
+			deviceErrorMessagesList.add(errorMessage);
+			logger.error(errorMessage);
+		}
+	}
+
+	/**
+	 * Get list of device every 30 seconds
+	 *
+	 * API Endpoint: /systems/{id}/items
+	 * Success: Return a list of devices within the organization
+	 */
+	private void populateDeviceDetails(String deviceId) {
+		try {
+			JsonNode responseDeviceList = this.doGet(QSysReflectConstant.QSYS_URL_SYSTEMS + "/" + deviceId + QSysReflectConstant.QSYS_URL_ITEMS, JsonNode.class);
+			for (int i = 0; i < responseDeviceList.size(); i++) {
+				JsonNode currentDevice = responseDeviceList.get(i);
+				deviceStatusMessageMap.put(currentDevice.get(QSysReflectConstant.ID).asText(), currentDevice.get(QSysReflectConstant.STATUS)
+						.get(QSysReflectConstant.MESSAGE).asText());
+			}
+			Map<String, PropertiesMapping> mapping = new PropertiesMappingParser().loadYML(QSysReflectConstant.MODEL_MAPPING_OTHER_THAN_QSYS_CORE, getClass());
+			aggregatedDeviceProcessor = new AggregatedDeviceProcessor(mapping);
+			aggregatedDeviceList.addAll(aggregatedDeviceProcessor.extractDevices(responseDeviceList));
+			if (logger.isDebugEnabled()) {
+				logger.debug(String.format("New fetched aggregated device list: %s", aggregatedDeviceList));
+			}
 		} catch (Exception e) {
 			String errorMessage = String.format("Aggregated Device Data Retrieval-Error: %s with cause: %s", e.getMessage(), e.getCause().getMessage());
 			deviceErrorMessagesList.add(errorMessage);
@@ -634,8 +780,6 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 			}
 			synchronized (systemResponseList) {
 				for (SystemResponse systemResponse : systemResponseList) {
-					// Apply filter for system information that match the devices' name
-					if (deviceNameAndModelMap.containsKey(systemResponse.getCoreName())) {
 						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.SYSTEM_ID.getName()), String.valueOf(systemResponse.getId()));
 						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.SYSTEM_CODE.getName()), String.valueOf(systemResponse.getCode()));
 						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.SYSTEM_STATUS.getName()), String.valueOf(systemResponse.getStatusString()));
@@ -650,7 +794,6 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.UPTIME.getName()), handleNormalizeUptime(systemResponse.getUptime()));
 						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.CORE_NAME.getName()), String.valueOf(systemResponse.getCoreName()));
 						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.MODEL.getName()), deviceNameAndModelMap.get(systemResponse.getCoreName()));
-					}
 				}
 			}
 		}
@@ -662,7 +805,35 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	private void getFilteredAggregatedDeviceList() {
 		populateDeviceStatusMessage();
 		filterDeviceModel();
-		filterDeviceStatusMessage();
+		populateFilter(filterDeviceStatusMessage, QSysReflectConstant.DEVICE_STATUS_MESSAGE);
+		populateFilter(filterType, QSysReflectConstant.DEVICE_TYPE);
+	}
+
+	/**
+	 * Filter list of aggregated devices by the name of system
+	 */
+	private void filterBySystemName() {
+		systemResponseFilterList.clear();
+		if (!StringUtils.isNullOrEmpty(filterSystemName) && !QSysReflectConstant.DOUBLE_QUOTES.equals(filterSystemName)) {
+			List<String> filterSystemNameValues = handleListExtractFilter(filterSystemName);
+			if (logger.isDebugEnabled()) {
+				logger.debug(String.format("Applying system name filter with values(s): %s", filterSystemName));
+			}
+			List<SystemResponse> filteredSystemResponse = new ArrayList<>();
+			synchronized (systemResponseList) {
+				for (SystemResponse systemResponse : systemResponseList) {
+					for (String systemName : filterSystemNameValues) {
+						if (systemName.equals(systemResponse.getName())) {
+							filteredSystemResponse.add(systemResponse);
+						}
+					}
+				}
+			}
+			systemResponseFilterList = filteredSystemResponse;
+			if (systemResponseFilterList.isEmpty()) {
+				aggregatedDeviceList.clear();
+			}
+		}
 	}
 
 	/**
@@ -709,49 +880,31 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	}
 
 	/**
-	 * Split filterModelName (separated by commas) to array of models
-	 *
-	 * @return list string of device model
-	 */
-	private List<String> handleListFilterModel() {
-		try {
-			List<String> resultList = new ArrayList<>();
-			String[] listModel = this.getFilterModel().split(QSysReflectConstant.COMMA);
-			for (int i = 0; i < listModel.length; i++) {
-				listModel[i] = listModel[i].trim();
-			}
-			Collections.addAll(resultList, listModel);
-			return resultList;
-		} catch (Exception e) {
-			throw new IllegalArgumentException("Fail to split string, input from adapter properties is wrong", e);
-		}
-	}
-
-	/**
-	 * Split filterStatusMessage (separated by commas) to array of status messages
-	 *
-	 * @return list string of status message
-	 */
-	private List<String> handleListFilterStatus() {
-		try {
-			List<String> resultList = new ArrayList<>();
-			String[] listStatus = this.getFilterDeviceStatusMessage().split(QSysReflectConstant.COMMA);
-			for (int i = 0; i < listStatus.length; i++) {
-				listStatus[i] = listStatus[i].trim();
-			}
-			Collections.addAll(resultList, listStatus);
-			return resultList;
-		} catch (Exception e) {
-			throw new IllegalArgumentException("Fail to split string, input from adapter properties is wrong", e);
-		}
-	}
-
-	/**
 	 * Check API token validation
 	 *
 	 * @return boolean
 	 */
 	private boolean checkValidApiToken() {
 		return !StringUtils.isNullOrEmpty(apiToken);
+	}
+
+	/**
+	 * Split name (separated by commas) to array
+	 *
+	 * @param filterName the filterName is name filter
+	 * @return list string
+	 */
+	private List<String> handleListExtractFilter(String filterName) {
+		try {
+			List<String> resultList = new ArrayList<>();
+			String[] listName = filterName.split(QSysReflectConstant.COMMA);
+			for (int i = 0; i < listName.length; i++) {
+				listName[i] = listName[i].trim();
+			}
+			Collections.addAll(resultList, listName);
+			return resultList;
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Fail to split string, input from adapter properties is wrong", e);
+		}
 	}
 }

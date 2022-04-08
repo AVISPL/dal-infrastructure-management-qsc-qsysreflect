@@ -4,6 +4,7 @@
 package com.avispl.symphony.dal.infrastructure.management.qsc.qsysreflect;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
@@ -27,9 +28,9 @@ import com.avispl.symphony.dal.communicator.HttpCommunicator.AuthenticationSchem
  * Unit test for {@link QSysReflectCommunicator}.
  * Test monitoring data with all systems and aggregator device
  *
- * @author Ivan
- * @version 1.0
- * @since 1.0.0
+ * @author Ivan, Harry
+ * @version 2.0.0
+ * @since 2.0.0
  */
 class QSysReflectCommunicatorTest {
 	static QSysReflectCommunicator qSysReflectCommunicator;
@@ -73,7 +74,7 @@ class QSysReflectCommunicatorTest {
 		Thread.sleep(30000);
 		ExtendedStatistics extendedStatistics = (ExtendedStatistics) qSysReflectCommunicator.getMultipleStatistics().get(0);
 		Map<String, String> stats = extendedStatistics.getStatistics();
-		Assert.assertEquals(24, stats.size());
+		Assert.assertEquals(32, stats.size());
 
 		Assert.assertEquals("9468", stats.get("AVISPL Test Core110f" + "#" + "SystemId"));
 		Assert.assertEquals("3-440F59FA6034C59670FF3C0928929607", stats.get("AVISPL Test Core110f" + "#" + "SystemCode"));
@@ -108,7 +109,7 @@ class QSysReflectCommunicatorTest {
 		qSysReflectCommunicator.retrieveMultipleStatistics();
 		Thread.sleep(30000);
 		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
-		Assert.assertEquals(5, aggregatedDeviceList.size());
+		Assert.assertEquals(39, aggregatedDeviceList.size());
 		Assert.assertEquals("Core 510i", aggregatedDeviceList.get(0).getDeviceModel());
 		Assert.assertEquals("Core 110f", aggregatedDeviceList.get(1).getDeviceModel());
 		Assert.assertEquals("Core 110", aggregatedDeviceList.get(2).getDeviceModel());
@@ -327,37 +328,128 @@ class QSysReflectCommunicatorTest {
 		Map<String, String> stats = extendedStatistics.getStatistics();
 		Assert.assertEquals(36, stats.size());
 
-		Assert.assertEquals("7725", stats.get("MillenniumPark" + "#" + "SystemId"));
-		Assert.assertEquals("3-3F23AA07A6C4E22F526A88C3A5B0D217", stats.get("MillenniumPark" + "#" + "SystemCode"));
-		Assert.assertEquals("Running", stats.get("MillenniumPark" + "#" + "SystemStatus"));
-		Assert.assertEquals("10", stats.get("MillenniumPark" + "#" + "AlertsNormal"));
-		Assert.assertEquals("0", stats.get("MillenniumPark" + "#" + "AlertsWarning"));
-		Assert.assertEquals("0", stats.get("MillenniumPark" + "#" + "AlertsFault"));
-		Assert.assertEquals("0", stats.get("MillenniumPark" + "#" + "AlertsUnknown"));
-		Assert.assertEquals("AVISPL_Millennium_Park_v4.3", stats.get("MillenniumPark" + "#" + "DesignName"));
-		Assert.assertEquals("Core 510i", stats.get("MillenniumPark" + "#" + "DesignPlatform"));
-		Assert.assertEquals("CHI-MillPark-DSP01", stats.get("MillenniumPark" + "#" + "CoreName"));
+		Assert.assertEquals("10028", stats.get("ExecutiveRoomCore-01" + "#" + "SystemId"));
+		Assert.assertEquals("3-06AC3AB31F07DD0118B29EE65183499E", stats.get("ExecutiveRoomCore-01" + "#" + "SystemCode"));
+		Assert.assertEquals("Running", stats.get("ExecutiveRoomCore-01" + "#" + "SystemStatus"));
 
-		Assert.assertEquals("10028", stats.get("Base Classroom Updated v7" + "#" + "SystemId"));
-		Assert.assertEquals("3-06AC3AB31F07DD0118B29EE65183499E", stats.get("Base Classroom Updated v7" + "#" + "SystemCode"));
-		Assert.assertEquals("Running", stats.get("Base Classroom Updated v7" + "#" + "SystemStatus"));
-		Assert.assertEquals("8", stats.get("Base Classroom Updated v7" + "#" + "AlertsNormal"));
-		Assert.assertEquals("0", stats.get("Base Classroom Updated v7" + "#" + "AlertsWarning"));
-		Assert.assertEquals("2", stats.get("Base Classroom Updated v7" + "#" + "AlertsFault"));
-		Assert.assertEquals("0", stats.get("Base Classroom Updated v7" + "#" + "AlertsUnknown"));
-		Assert.assertEquals("Base Classroom Updated v7", stats.get("Base Classroom Updated v7" + "#" + "DesignName"));
-		Assert.assertEquals("NV-32-H (Core Mode)", stats.get("Base Classroom Updated v7" + "#" + "DesignPlatform"));
-		Assert.assertEquals("nv-32-h-e159", stats.get("Base Classroom Updated v7" + "#" + "CoreName"));
+		Assert.assertEquals("10549", stats.get("CeeSalt-Core110f" + "#" + "SystemId"));
+		Assert.assertEquals("3-440F59FA6034C59670FF3C0928929607", stats.get("CeeSalt-Core110f" + "#" + "SystemCode"));
+		Assert.assertEquals("Running", stats.get("CeeSalt-Core110f" + "#" + "SystemStatus"));
 
-		Assert.assertEquals("9468", stats.get("AVISPL Test Core110f" + "#" + "SystemId"));
-		Assert.assertEquals("3-440F59FA6034C59670FF3C0928929607", stats.get("AVISPL Test Core110f" + "#" + "SystemCode"));
-		Assert.assertEquals("Running", stats.get("AVISPL Test Core110f" + "#" + "SystemStatus"));
-		Assert.assertEquals("14", stats.get("AVISPL Test Core110f" + "#" + "AlertsNormal"));
-		Assert.assertEquals("1", stats.get("AVISPL Test Core110f" + "#" + "AlertsWarning"));
-		Assert.assertEquals("0", stats.get("AVISPL Test Core110f" + "#" + "AlertsFault"));
-		Assert.assertEquals("0", stats.get("AVISPL Test Core110f" + "#" + "AlertsUnknown"));
-		Assert.assertEquals("CeeSalt_TestCore_v3.1", stats.get("AVISPL Test Core110f" + "#" + "DesignName"));
-		Assert.assertEquals("Core 110f", stats.get("AVISPL Test Core110f" + "#" + "DesignPlatform"));
-		Assert.assertEquals("CeeSalt-Core110f", stats.get("AVISPL Test Core110f" + "#" + "CoreName"));
+		Assert.assertEquals("10577", stats.get("Millennium Park" + "#" + "SystemId"));
+		Assert.assertEquals("3-3F23AA07A6C4E22F526A88C3A5B0D217", stats.get("Millennium Park" + "#" + "SystemCode"));
+		Assert.assertEquals("Running", stats.get("Millennium Park" + "#" + "SystemStatus"));
+	}
+
+	/**
+	 * Test retrieveMultipleStatistics with FilterSystemName
+	 *
+	 * Expect retrieveMultipleStatistics successfully with system name is AVISPL Test Core110f and aggregatedDeviceList is 17
+	 */
+	@Tag("Mock")
+	@Test
+	void testFilterSystemName() throws Exception {
+		qSysReflectCommunicator.setFilterSystemName("AVISPL Test Core110f");
+		qSysReflectCommunicator.retrieveMultipleStatistics();
+		Thread.sleep(30000);
+		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
+		Assert.assertEquals(17, aggregatedDeviceList.size());
+		for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
+			if (aggregatedDevice.getDeviceName().equals("CHI-MillPark-DSP01")) {
+				Map<String, String> stats = aggregatedDevice.getProperties();
+				assertEquals("Core", stats.get("deviceType"));
+				assertEquals("829", stats.get("siteId"));
+				assertEquals("Schaumburg Office", stats.get("siteName"));
+				assertEquals("9.2.1-2110.001", stats.get("firmwareVersion"));
+				assertEquals("Running", stats.get("deviceStatusMessage"));
+			}
+		}
+	}
+
+	/**
+	 * Test retrieveMultipleStatistics with FilterSystemName
+	 *
+	 * Expect retrieveMultipleStatistics with the name system not exist and list AggregatedDevice is empty
+	 */
+	@Tag("Mock")
+	@Test
+	void testFilterSystemNameNotExitByName() throws Exception {
+		qSysReflectCommunicator.retrieveMultipleStatistics();
+		Thread.sleep(30000);
+
+		qSysReflectCommunicator.setFilterSystemName("System");
+		qSysReflectCommunicator.retrieveMultipleStatistics();
+		Thread.sleep(30000);
+		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
+		Assert.assertTrue(aggregatedDeviceList.isEmpty());
+	}
+
+	/**
+	 * Test retrieveMultipleStatistics with filterType
+	 *
+	 * Expect retrieveMultipleStatistics with type of device is camera
+	 */
+	@Tag("Mock")
+	@Test
+	void testFilterTypeIsCamera() throws Exception {
+		qSysReflectCommunicator.retrieveMultipleStatistics();
+		Thread.sleep(30000);
+
+		qSysReflectCommunicator.setFilterType("Camera");
+		qSysReflectCommunicator.retrieveMultipleStatistics();
+		Thread.sleep(30000);
+		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
+		Assert.assertEquals(4, aggregatedDeviceList.size());
+		for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
+			Map<String, String> stats = aggregatedDevice.getProperties();
+			assertEquals("Camera", stats.get("deviceType"));
+		}
+	}
+
+	/**
+	 * Test retrieveMultipleStatistics with filterSystemName and filterType
+	 *
+	 * Expect retrieveMultipleStatistics with the name system not exist and list AggregatedDevice is empty
+	 */
+	@Tag("Mock")
+	@Test
+	void testFilterSystemNameExitAndFilterTypeNotExit() throws Exception {
+		qSysReflectCommunicator.retrieveMultipleStatistics();
+		Thread.sleep(30000);
+
+		qSysReflectCommunicator.setFilterType("Camera");
+		qSysReflectCommunicator.setFilterSystemName("System 01");
+		qSysReflectCommunicator.retrieveMultipleStatistics();
+		Thread.sleep(30000);
+		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
+		Assert.assertTrue(aggregatedDeviceList.isEmpty());
+	}
+
+	/**
+	 * Test retrieveMultipleStatistics with filterSystemName and filterType
+	 *
+	 * Expect retrieveMultipleStatistics successfully with aggregatedDeviceList is 3
+	 */
+	@Tag("Mock")
+	@Test
+	void testFilterTypeAndFilterModel() throws Exception {
+		qSysReflectCommunicator.retrieveMultipleStatistics();
+		Thread.sleep(30000);
+
+		qSysReflectCommunicator.setFilterType("Core,Camera");
+		qSysReflectCommunicator.setFilterModel("PTZ-12x72");
+		qSysReflectCommunicator.retrieveMultipleStatistics();
+		Thread.sleep(30000);
+		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
+		Assert.assertEquals(3, aggregatedDeviceList.size());
+		Map<String, String> stats = aggregatedDeviceList.get(0).getProperties();
+		assertEquals("Camera", stats.get("deviceType"));
+		assertEquals("PTZ-12x72", stats.get("deviceModel"));
+		stats = aggregatedDeviceList.get(1).getProperties();
+		assertEquals("Camera", stats.get("deviceType"));
+		assertEquals("PTZ-12x72", stats.get("deviceModel"));
+		stats = aggregatedDeviceList.get(2).getProperties();
+		assertEquals("Camera", stats.get("deviceType"));
+		assertEquals("PTZ-12x72", stats.get("deviceModel"));
 	}
 }

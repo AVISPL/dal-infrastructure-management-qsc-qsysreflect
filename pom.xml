@@ -6,7 +6,7 @@
 
   <groupId>com.avispl.symphony.dal.infrastructure.management.qsc.qsysreflect</groupId>
   <artifactId>symphony-dal-infrastructure-management-qsc-qsysreflect</artifactId>
-  <version>1.0.0</version>
+  <version>2.0.0</version>
 
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
@@ -198,7 +198,7 @@
       <groupId>org.snmp4j</groupId>
       <artifactId>snmp4j</artifactId>
       <scope>test</scope>
-      <version>3.5.1</version>
+      <version>2.8.9</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
