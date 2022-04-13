@@ -107,22 +107,29 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 						for (SystemResponse systemResponse : systemResponseFilter) {
 							devicesExecutionPool.add(executorService.submit(() -> {
 								try {
-									populateDeviceDetails(String.valueOf(systemResponse.getId()));
+									populateDeviceDetails(systemResponse);
 								} catch (Exception e) {
 									logger.error(String.format("Exception during retrieve '%s' data processing.", systemResponse.getName()), e);
 								}
 							}));
 						}
-						do {
-							try {
-								TimeUnit.MILLISECONDS.sleep(500);
-							} catch (InterruptedException e) {
-								if (!inProgress) {
-									break;
-								}
+					do {
+						try {
+							TimeUnit.MILLISECONDS.sleep(500);
+						} catch (InterruptedException e) {
+							if (!inProgress) {
+								break;
 							}
-							devicesExecutionPool.removeIf(Future::isDone);
-						} while (!devicesExecutionPool.isEmpty());
+						}
+						devicesExecutionPool.removeIf(Future::isDone);
+					} while (!devicesExecutionPool.isEmpty());
+
+					//Handle cases where /cores contains the Q-Sys core devices but /items don't.
+					if (!filterCoresEmpty.isEmpty()) {
+						for (String coreName: filterCoresEmpty){
+							aggregatedDeviceList.removeIf(item ->item.getDeviceName().equals(coreName));
+						}
+					}
 				}
 				if (!inProgress) {
 					break mainloop;
@@ -264,6 +271,8 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * Q-Sys Reflect API Token
 	 */
 	private String apiToken;
+
+	private List<String> filterCoresEmpty = Collections.synchronizedList(new ArrayList<>());
 
 	/**
 	 * List of aggregated device
@@ -735,8 +744,9 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * API Endpoint: /systems/{id}/items
 	 * Success: Return a list of devices within the organization
 	 */
-	private void populateDeviceDetails(String deviceId) {
+	private void populateDeviceDetails(SystemResponse deviceSystem) {
 		try {
+			String deviceId = String.valueOf(deviceSystem.getId());
 			JsonNode responseDeviceList = this.doGet(QSysReflectConstant.QSYS_URL_SYSTEMS + "/" + deviceId + QSysReflectConstant.QSYS_URL_ITEMS, JsonNode.class);
 			for (int i = 0; i < responseDeviceList.size(); i++) {
 				JsonNode currentDevice = responseDeviceList.get(i);
@@ -745,7 +755,13 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 			}
 			Map<String, PropertiesMapping> mapping = new PropertiesMappingParser().loadYML(QSysReflectConstant.MODEL_MAPPING_OTHER_THAN_QSYS_CORE, getClass());
 			aggregatedDeviceProcessor = new AggregatedDeviceProcessor(mapping);
-			aggregatedDeviceList.addAll(aggregatedDeviceProcessor.extractDevices(responseDeviceList));
+			List<AggregatedDevice> deviceLisst = aggregatedDeviceProcessor.extractDevices(responseDeviceList);
+
+			if (deviceLisst.isEmpty()) {
+				filterCoresEmpty.add(deviceSystem.getCoreName());
+			}
+			deviceLisst.removeIf(item -> item.getProperties().get(QSysReflectConstant.DEVICE_TYPE).equals(QSysReflectConstant.CORE));
+			aggregatedDeviceList.addAll(deviceLisst);
 			if (logger.isDebugEnabled()) {
 				logger.debug(String.format("New fetched aggregated device list: %s", aggregatedDeviceList));
 			}

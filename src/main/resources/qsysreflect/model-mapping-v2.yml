@@ -2,7 +2,7 @@ models:
   - model:
       name: Generic
       vendor: QSC
-      filter: get("type").asText().equals("Core") == false
+      filter: true
       properties:
         startedAt: get("startedAt")
         deviceModel: get("model")
