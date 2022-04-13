@@ -326,19 +326,16 @@ class QSysReflectCommunicatorTest {
 		Thread.sleep(30000);
 		ExtendedStatistics extendedStatistics = (ExtendedStatistics) qSysReflectCommunicator.getMultipleStatistics().get(0);
 		Map<String, String> stats = extendedStatistics.getStatistics();
-		Assert.assertEquals(36, stats.size());
+		Assert.assertEquals(32, stats.size());
 
 		Assert.assertEquals("10028", stats.get("ExecutiveRoomCore-01" + "#" + "SystemId"));
 		Assert.assertEquals("3-06AC3AB31F07DD0118B29EE65183499E", stats.get("ExecutiveRoomCore-01" + "#" + "SystemCode"));
-		Assert.assertEquals("Running", stats.get("ExecutiveRoomCore-01" + "#" + "SystemStatus"));
 
 		Assert.assertEquals("10549", stats.get("CeeSalt-Core110f" + "#" + "SystemId"));
 		Assert.assertEquals("3-440F59FA6034C59670FF3C0928929607", stats.get("CeeSalt-Core110f" + "#" + "SystemCode"));
-		Assert.assertEquals("Running", stats.get("CeeSalt-Core110f" + "#" + "SystemStatus"));
 
 		Assert.assertEquals("10577", stats.get("Millennium Park" + "#" + "SystemId"));
 		Assert.assertEquals("3-3F23AA07A6C4E22F526A88C3A5B0D217", stats.get("Millennium Park" + "#" + "SystemCode"));
-		Assert.assertEquals("Running", stats.get("Millennium Park" + "#" + "SystemStatus"));
 	}
 
 	/**
@@ -353,7 +350,7 @@ class QSysReflectCommunicatorTest {
 		qSysReflectCommunicator.retrieveMultipleStatistics();
 		Thread.sleep(30000);
 		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
-		Assert.assertEquals(17, aggregatedDeviceList.size());
+		Assert.assertEquals(14, aggregatedDeviceList.size());
 		for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
 			if (aggregatedDevice.getDeviceName().equals("CHI-MillPark-DSP01")) {
 				Map<String, String> stats = aggregatedDevice.getProperties();
@@ -451,5 +448,37 @@ class QSysReflectCommunicatorTest {
 		stats = aggregatedDeviceList.get(2).getProperties();
 		assertEquals("Camera", stats.get("deviceType"));
 		assertEquals("PTZ-12x72", stats.get("deviceModel"));
+	}
+
+	/**
+	 * Test getMultipleStatistics with filterDeviceStatusMessage, filterModel and filterSystemName
+	 *
+	 * Expect getMultipleStatistics successfully with three filter
+	 */
+	@Tag("RealDevice")
+	@Test
+	void testFilterTypeAndSystemNameAndMessageWithRealDevice() throws Exception {
+		qSysReflectCommunicator.destroy();
+		qSysReflectCommunicator.setTrustAllCertificates(false);
+		qSysReflectCommunicator.setProtocol("https");
+		qSysReflectCommunicator.setContentType("application/json");
+		qSysReflectCommunicator.setHost("reflect.qsc.com");
+		qSysReflectCommunicator.setPort(443);
+		qSysReflectCommunicator.setAuthenticationScheme(AuthenticationScheme.Basic);
+		qSysReflectCommunicator.setLogin("tokenString");
+		qSysReflectCommunicator.setPassword("57cfe39c35d7df9fde6f24008854e078225ddbd4bbf8cbdbd04284c8f333c454");
+		qSysReflectCommunicator.init();
+		qSysReflectCommunicator.setFilterModel("Generic AV Source, TSC-116-G2abc");
+		qSysReflectCommunicator.setFilterDeviceStatusMessage("Missing, OK,Not Present");
+		qSysReflectCommunicator.setFilterSystemName("ExecutiveRoomCore-01, CeeSalt-Core110f");
+		qSysReflectCommunicator.retrieveMultipleStatistics();
+		Thread.sleep(30000);
+		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
+		Assert.assertEquals(3, aggregatedDeviceList.size());
+		for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
+			Map<String, String> stats = aggregatedDevice.getProperties();
+			assertEquals("AV Source", stats.get("deviceType"));
+			assertEquals("Generic AV Source", stats.get("deviceModel"));
+		}
 	}
 }

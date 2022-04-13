@@ -676,13 +676,14 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 			}
 			return;
 		}
-		retrieveDevices();
-		if (logger.isDebugEnabled()) {
-			logger.debug(String.format("New fetched devices list: %s", aggregatedDeviceList));
-		}
 		retrieveSystemInfo();
 		if (logger.isDebugEnabled()) {
 			logger.debug(String.format("New fetched system information list: %s", systemResponseList));
+		}
+
+		retrieveDevices();
+		if (logger.isDebugEnabled()) {
+			logger.debug(String.format("New fetched devices list: %s", aggregatedDeviceList));
 		}
 	}
 
@@ -701,6 +702,21 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 						.get(QSysReflectConstant.MESSAGE).asText());
 			}
 			aggregatedDeviceList = new ArrayList<>(aggregatedDeviceProcessor.extractDevices(devices));
+			if (!StringUtils.isNullOrEmpty(filterSystemName)) {
+				List<AggregatedDevice> aggregatedDevices = new ArrayList<>();
+				List<String> filterSystemNameValues = handleListExtractFilter(filterSystemName);
+				synchronized (systemResponseList) {
+					//filter aggregatedDevice is cores by systemName
+					for (SystemResponse systemResponse : systemResponseList) {
+						for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
+							if (filterSystemNameValues.contains(systemResponse.getName()) && aggregatedDevice.getDeviceName().equals(systemResponse.getCoreName())) {
+								aggregatedDevices.add(aggregatedDevice);
+							}
+						}
+					}
+				}
+				aggregatedDeviceList = aggregatedDevices;
+			}
 			for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
 				Map<String, String> stats = aggregatedDevice.getProperties();
 				stats.put(QSysReflectConstant.DEVICE_TYPE, QSysReflectConstant.CORE);
@@ -709,7 +725,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 		} catch (Exception e) {
 			String errorMessage = String.format("Aggregated Device Data Retrieval-Error: %s with cause: %s", e.getMessage(), e.getCause().getMessage());
 			deviceErrorMessagesList.add(errorMessage);
-			logger.error(errorMessage);
+			logger.error(errorMessage, e);
 		}
 	}
 
@@ -758,7 +774,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 		} catch (Exception e) {
 			String errorMessage = String.format("System Information Data Retrieval-Error: %s with cause: %s", e.getMessage(), e.getCause().getMessage());
 			systemErrorMessagesList.add(errorMessage);
-			logger.error(errorMessage);
+			logger.error(errorMessage, e);
 		}
 	}
 
