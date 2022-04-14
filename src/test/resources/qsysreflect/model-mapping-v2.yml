@@ -1,0 +1,21 @@
+models:
+  - model:
+      name: Generic
+      vendor: QSC
+      filter: get("type").asText().equals("Core") == false
+      properties:
+        startedAt: get("startedAt")
+        deviceModel: get("model")
+        deviceName: get("name")
+        deviceId: get("id")
+        manufacturer: get("manufacturer")
+        location: get("location")
+        deviceType: get("type")
+      mapping:
+        deviceType: get("type")
+        deviceModel: get("model")
+        deviceName: get("name")
+        deviceId: get("id")
+        manufacturer: get("manufacturer")
+        location: get("location")
+        startedAt: get("startedAt")
