@@ -123,13 +123,6 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 						}
 						devicesExecutionPool.removeIf(Future::isDone);
 					} while (!devicesExecutionPool.isEmpty());
-
-					//Handle cases where /cores contains the Q-Sys core devices but /items don't.
-					if (!filterCoresEmpty.isEmpty()) {
-						for (String coreName: filterCoresEmpty){
-							aggregatedDeviceList.removeIf(item ->item.getDeviceName().equals(coreName));
-						}
-					}
 				}
 				if (!inProgress) {
 					break mainloop;
@@ -261,6 +254,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	private long nextDevicesCollectionIterationTimestamp;
 
 	private AggregatedDeviceProcessor aggregatedDeviceProcessor;
+	private AggregatedDeviceProcessor aggregatedDeviceProcessorSecond;
 
 	/**
 	 * Runner service responsible for collecting data
@@ -271,8 +265,6 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * Q-Sys Reflect API Token
 	 */
 	private String apiToken;
-
-	private List<String> filterCoresEmpty = Collections.synchronizedList(new ArrayList<>());
 
 	/**
 	 * List of aggregated device
@@ -425,6 +417,9 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	public QSysReflectCommunicator() throws IOException {
 		Map<String, PropertiesMapping> mapping = new PropertiesMappingParser().loadYML(QSysReflectConstant.MODEL_MAPPING_QSYS_CORE, getClass());
 		aggregatedDeviceProcessor = new AggregatedDeviceProcessor(mapping);
+
+		Map<String, PropertiesMapping> mappingSecond = new PropertiesMappingParser().loadYML(QSysReflectConstant.MODEL_MAPPING_OTHER_THAN_QSYS_CORE, getClass());
+		aggregatedDeviceProcessorSecond = new AggregatedDeviceProcessor(mappingSecond);
 	}
 
 	/**
@@ -523,7 +518,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 			if (executorService == null) {
 				// Due to the bug that after changing properties on fly - the adapter is destroyed but adapter is not initialized properly,
 				// so executor service is not running. We need to make sure executorService exists
-				executorService = Executors.newSingleThreadExecutor();
+				executorService = Executors.newFixedThreadPool(8);
 				executorService.submit(deviceDataLoader = new QSysDeviceDataLoader());
 			}
 			nextDevicesCollectionIterationTimestamp = System.currentTimeMillis();
@@ -753,15 +748,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 				deviceStatusMessageMap.put(currentDevice.get(QSysReflectConstant.ID).asText(), currentDevice.get(QSysReflectConstant.STATUS)
 						.get(QSysReflectConstant.MESSAGE).asText());
 			}
-			Map<String, PropertiesMapping> mapping = new PropertiesMappingParser().loadYML(QSysReflectConstant.MODEL_MAPPING_OTHER_THAN_QSYS_CORE, getClass());
-			aggregatedDeviceProcessor = new AggregatedDeviceProcessor(mapping);
-			List<AggregatedDevice> deviceLisst = aggregatedDeviceProcessor.extractDevices(responseDeviceList);
-
-			if (deviceLisst.isEmpty()) {
-				filterCoresEmpty.add(deviceSystem.getCoreName());
-			}
-			deviceLisst.removeIf(item -> item.getProperties().get(QSysReflectConstant.DEVICE_TYPE).equals(QSysReflectConstant.CORE));
-			aggregatedDeviceList.addAll(deviceLisst);
+			aggregatedDeviceList.addAll(aggregatedDeviceProcessorSecond.extractDevices(responseDeviceList));
 			if (logger.isDebugEnabled()) {
 				logger.debug(String.format("New fetched aggregated device list: %s", aggregatedDeviceList));
 			}
