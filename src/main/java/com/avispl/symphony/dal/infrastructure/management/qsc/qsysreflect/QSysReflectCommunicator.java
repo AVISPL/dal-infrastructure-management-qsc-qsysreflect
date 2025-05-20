@@ -99,20 +99,20 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 				}
 				if (!systemResponseList.isEmpty() && validDeviceMetaDataRetrievalPeriodTimestamp <= currentTimestamp) {
 					validDeviceMetaDataRetrievalPeriodTimestamp = currentTimestamp + deviceMetaDataRetrievalTimeout;
-						filterBySystemName();
-						List<SystemResponse> systemResponseFilter = systemResponseFilterList;
-						if (StringUtils.isNullOrEmpty(filterSystemName)) {
-							systemResponseFilter = systemResponseList;
-						}
-						for (SystemResponse systemResponse : systemResponseFilter) {
-							devicesExecutionPool.add(executorService.submit(() -> {
-								try {
-									populateDeviceDetails(systemResponse);
-								} catch (Exception e) {
-									logger.error(String.format("Exception during retrieve '%s' data processing.", systemResponse.getName()), e);
-								}
-							}));
-						}
+					filterBySystemName();
+					List<SystemResponse> systemResponseFilter = systemResponseFilterList;
+					if (StringUtils.isNullOrEmpty(filterSystemName)) {
+						systemResponseFilter = systemResponseList;
+					}
+					for (SystemResponse systemResponse : systemResponseFilter) {
+						devicesExecutionPool.add(executorService.submit(() -> {
+							try {
+								populateDeviceDetails(systemResponse);
+							} catch (Exception e) {
+								logger.error(String.format("Exception during retrieve '%s' data processing.", systemResponse.getName()), e);
+							}
+						}));
+					}
 					do {
 						try {
 							TimeUnit.MILLISECONDS.sleep(500);
@@ -282,11 +282,6 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	private List<SystemResponse> systemResponseFilterList = Collections.synchronizedList(new ArrayList<>());
 
 	/**
-	 * List error message occur while fetching aggregated devices
-	 */
-	private Set<String> deviceErrorMessagesList = Collections.synchronizedSet(new LinkedHashSet<>());
-
-	/**
 	 * List of error message occur while fetching system information
 	 */
 	private Set<String> systemErrorMessagesList = Collections.synchronizedSet(new LinkedHashSet<>());
@@ -427,6 +422,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 */
 	@Override
 	protected void internalInit() throws Exception {
+		this.setTrustAllCertificates(true);
 		if (logger.isDebugEnabled()) {
 			logger.debug("Internal init is called.");
 		}
@@ -464,7 +460,6 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 
 		aggregatedDeviceList.clear();
 		systemResponseList.clear();
-		deviceErrorMessagesList.clear();
 		systemErrorMessagesList.clear();
 		super.internalDestroy();
 	}
@@ -523,14 +518,6 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 			}
 			nextDevicesCollectionIterationTimestamp = System.currentTimeMillis();
 			updateValidRetrieveStatisticsTimestamp();
-		}
-		if (!deviceErrorMessagesList.isEmpty()) {
-			synchronized (deviceErrorMessagesList) {
-				String errorMessage = deviceErrorMessagesList.stream().map(Object::toString)
-						.collect(Collectors.joining("\n"));
-				deviceErrorMessagesList.clear();
-				throw new ResourceNotReachableException(errorMessage);
-			}
 		}
 		if (aggregatedDeviceList.isEmpty()) {
 			return aggregatedDeviceList;
@@ -642,6 +629,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 
 	/**
 	 * Populate device uptime from the API
+	 *
 	 * @param resultAggregatedDeviceList list of aggregated device that need to update device uptime
 	 */
 	private void populateDeviceUptime(List<AggregatedDevice> resultAggregatedDeviceList) {
@@ -728,8 +716,9 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 			}
 		} catch (Exception e) {
 			String errorMessage = String.format("Aggregated Device Data Retrieval-Error: %s with cause: %s", e.getMessage(), e.getCause().getMessage());
-			deviceErrorMessagesList.add(errorMessage);
-			logger.error(errorMessage, e);
+			if (logger.isDebugEnabled()) {
+				logger.debug(errorMessage, e);
+			}
 		}
 	}
 
@@ -754,8 +743,9 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 			}
 		} catch (Exception e) {
 			String errorMessage = String.format("Aggregated Device Data Retrieval-Error: %s with cause: %s", e.getMessage(), e.getCause().getMessage());
-			deviceErrorMessagesList.add(errorMessage);
-			logger.error(errorMessage);
+			if (logger.isDebugEnabled()) {
+				logger.debug(errorMessage, e);
+			}
 		}
 	}
 
@@ -799,20 +789,20 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 			}
 			synchronized (systemResponseList) {
 				for (SystemResponse systemResponse : systemResponseList) {
-						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.SYSTEM_ID.getName()), String.valueOf(systemResponse.getId()));
-						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.SYSTEM_CODE.getName()), String.valueOf(systemResponse.getCode()));
-						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.SYSTEM_STATUS.getName()), String.valueOf(systemResponse.getStatusString()));
-						if (systemResponse.getNormalAlert() != null && systemResponse.getFaultAlert() != null && systemResponse.getUnknownAlert() != null && systemResponse.getWarningAlert() != null) {
-							stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.ALERTS_NORMAL.getName()), String.valueOf(systemResponse.getNormalAlert()));
-							stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.ALERTS_WARNING.getName()), String.valueOf(systemResponse.getWarningAlert()));
-							stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.ALERTS_FAULT.getName()), String.valueOf(systemResponse.getFaultAlert()));
-							stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.ALERTS_UNKNOWN.getName()), String.valueOf(systemResponse.getUnknownAlert()));
-						}
-						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.DESIGN_NAME.getName()), String.valueOf(systemResponse.getDesignName()));
-						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.DESIGN_PLATFORM.getName()), String.valueOf(systemResponse.getDesignPlatform()));
-						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.UPTIME.getName()), handleNormalizeUptime(systemResponse.getUptime()));
-						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.CORE_NAME.getName()), String.valueOf(systemResponse.getCoreName()));
-						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.MODEL.getName()), deviceNameAndModelMap.get(systemResponse.getCoreName()));
+					stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.SYSTEM_ID.getName()), String.valueOf(systemResponse.getId()));
+					stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.SYSTEM_CODE.getName()), String.valueOf(systemResponse.getCode()));
+					stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.SYSTEM_STATUS.getName()), String.valueOf(systemResponse.getStatusString()));
+					if (systemResponse.getNormalAlert() != null && systemResponse.getFaultAlert() != null && systemResponse.getUnknownAlert() != null && systemResponse.getWarningAlert() != null) {
+						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.ALERTS_NORMAL.getName()), String.valueOf(systemResponse.getNormalAlert()));
+						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.ALERTS_WARNING.getName()), String.valueOf(systemResponse.getWarningAlert()));
+						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.ALERTS_FAULT.getName()), String.valueOf(systemResponse.getFaultAlert()));
+						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.ALERTS_UNKNOWN.getName()), String.valueOf(systemResponse.getUnknownAlert()));
+					}
+					stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.DESIGN_NAME.getName()), String.valueOf(systemResponse.getDesignName()));
+					stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.DESIGN_PLATFORM.getName()), String.valueOf(systemResponse.getDesignPlatform()));
+					stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.UPTIME.getName()), handleNormalizeUptime(systemResponse.getUptime()));
+					stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.CORE_NAME.getName()), String.valueOf(systemResponse.getCoreName()));
+					stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.MODEL.getName()), deviceNameAndModelMap.get(systemResponse.getCoreName()));
 				}
 			}
 		}
