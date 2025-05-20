@@ -53,7 +53,6 @@ jobs:
       - name: PMD check
         run: mvn pmd:check
       - id: getfilename
-
         run: echo "file=$(ls target/symphony-dal-infrastructure-management-qsc-qsysreflect-${{ needs.versiongenerate.outputs.version }}.jar)" >> $GITHUB_OUTPUT
       - uses: actions/upload-artifact@v3
         with:
