@@ -541,26 +541,36 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * @return List<AggregatedDevice>
 	 */
 	private List<AggregatedDevice> cloneAggregatedDeviceList() {
-		List<AggregatedDevice> resultAggregatedDeviceList = new ArrayList<>();
-		synchronized (aggregatedDeviceList) {
-			for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
-				AggregatedDevice newClonedAggregatedDevice = new AggregatedDevice();
-				newClonedAggregatedDevice.setDeviceId(aggregatedDevice.getDeviceId());
-				newClonedAggregatedDevice.setDeviceModel(aggregatedDevice.getDeviceModel());
-				newClonedAggregatedDevice.setDeviceName(aggregatedDevice.getDeviceName());
-				newClonedAggregatedDevice.setSerialNumber(aggregatedDevice.getSerialNumber());
-				Map<String, String> newProperties = new HashMap<>();
-				for (Map.Entry<String, String> entry : aggregatedDevice.getProperties().entrySet()) {
-					newProperties.put(entry.getKey(), entry.getValue());
+		try {
+			List<AggregatedDevice> resultAggregatedDeviceList = new ArrayList<>();
+			synchronized (aggregatedDeviceList) {
+				for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
+					if (aggregatedDevice == null) {
+						this.logger.warn("Found null AggregatedDevice in aggregatedDeviceList, skipping");
+						continue;
+					}
+					AggregatedDevice newClonedAggregatedDevice = new AggregatedDevice();
+					newClonedAggregatedDevice.setDeviceId(aggregatedDevice.getDeviceId());
+					newClonedAggregatedDevice.setDeviceModel(aggregatedDevice.getDeviceModel());
+					newClonedAggregatedDevice.setDeviceName(aggregatedDevice.getDeviceName());
+					newClonedAggregatedDevice.setSerialNumber(aggregatedDevice.getSerialNumber());
+					Map<String, String> newProperties = new HashMap<>();
+					for (Map.Entry<String, String> entry : aggregatedDevice.getProperties().entrySet()) {
+						newProperties.put(entry.getKey(), entry.getValue());
+					}
+					boolean deviceOnline =
+							deviceStatusMessageMap.get(aggregatedDevice.getDeviceId()).equals(QSysReflectConstant.RUNNING) || deviceStatusMessageMap.get(aggregatedDevice.getDeviceId())
+									.equals(QSysReflectConstant.OK);
+					newClonedAggregatedDevice.setDeviceOnline(deviceOnline);
+					newClonedAggregatedDevice.setProperties(newProperties);
+					resultAggregatedDeviceList.add(newClonedAggregatedDevice);
 				}
-				boolean deviceOnline =
-						deviceStatusMessageMap.get(aggregatedDevice.getDeviceId()).equals(QSysReflectConstant.RUNNING) || deviceStatusMessageMap.get(aggregatedDevice.getDeviceId()).equals(QSysReflectConstant.OK);
-				newClonedAggregatedDevice.setDeviceOnline(deviceOnline);
-				newClonedAggregatedDevice.setProperties(newProperties);
-				resultAggregatedDeviceList.add(newClonedAggregatedDevice);
 			}
+			return resultAggregatedDeviceList;
+		} catch (Exception e) {
+			this.logger.error("Failed to cloneAggregatedDeviceList", e);
+			return new ArrayList<>();
 		}
-		return resultAggregatedDeviceList;
 	}
 
 	/**
@@ -570,23 +580,27 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * @param propertiesName the propertiesName is type filter
 	 */
 	private void populateFilter(String filterName, String propertiesName) {
-		if (!StringUtils.isNullOrEmpty(filterName) && !QSysReflectConstant.DOUBLE_QUOTES.equals(filterName)) {
-			List<String> filterTypeValues = handleListExtractFilter(filterName);
-			if (logger.isDebugEnabled()) {
-				logger.debug(String.format("Applying device filter with values(s): %s", filterName));
-			}
-			List<AggregatedDevice> filteredAggregatedDevice = new ArrayList<>();
-			synchronized (aggregatedDeviceList) {
-				for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
-					Map<String, String> properties = aggregatedDevice.getProperties();
-					for (String type : filterTypeValues) {
-						if (type.equals(properties.get(propertiesName))) {
-							filteredAggregatedDevice.add(aggregatedDevice);
+		try {
+			if (!StringUtils.isNullOrEmpty(filterName) && !QSysReflectConstant.DOUBLE_QUOTES.equals(filterName)) {
+				List<String> filterTypeValues = handleListExtractFilter(filterName);
+				if (logger.isDebugEnabled()) {
+					logger.debug(String.format("Applying device filter with values(s): %s", filterName));
+				}
+				List<AggregatedDevice> filteredAggregatedDevice = new ArrayList<>();
+				synchronized (aggregatedDeviceList) {
+					for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
+						Map<String, String> properties = aggregatedDevice.getProperties();
+						for (String type : filterTypeValues) {
+							if (type.equals(properties.get(propertiesName))) {
+								filteredAggregatedDevice.add(aggregatedDevice);
+							}
 						}
 					}
 				}
+				aggregatedDeviceList = filteredAggregatedDevice;
 			}
-			aggregatedDeviceList = filteredAggregatedDevice;
+		} catch (Exception e) {
+			this.logger.error("Failed to populateFilter", e);
 		}
 	}
 
@@ -594,22 +608,26 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * Filter list of aggregated devices based on device model
 	 */
 	private void filterDeviceModel() {
-		if (!StringUtils.isNullOrEmpty(filterModel) && !QSysReflectConstant.DOUBLE_QUOTES.equals(filterModel)) {
-			List<String> filterDeviceModelValues = handleListExtractFilter(filterModel);
-			if (logger.isDebugEnabled()) {
-				logger.debug(String.format("Applying device model filter with values(s): %s", filterModel));
-			}
-			List<AggregatedDevice> filteredAggregatedDevice = new ArrayList<>();
-			synchronized (aggregatedDeviceList) {
-				for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
-					for (String modelName : filterDeviceModelValues) {
-						if (modelName.equals(aggregatedDevice.getDeviceModel())) {
-							filteredAggregatedDevice.add(aggregatedDevice);
+		try {
+			if (!StringUtils.isNullOrEmpty(filterModel) && !QSysReflectConstant.DOUBLE_QUOTES.equals(filterModel)) {
+				List<String> filterDeviceModelValues = handleListExtractFilter(filterModel);
+				if (logger.isDebugEnabled()) {
+					logger.debug(String.format("Applying device model filter with values(s): %s", filterModel));
+				}
+				List<AggregatedDevice> filteredAggregatedDevice = new ArrayList<>();
+				synchronized (aggregatedDeviceList) {
+					for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
+						for (String modelName : filterDeviceModelValues) {
+							if (modelName.equals(aggregatedDevice.getDeviceModel())) {
+								filteredAggregatedDevice.add(aggregatedDevice);
+							}
 						}
 					}
 				}
+				aggregatedDeviceList = filteredAggregatedDevice;
 			}
-			aggregatedDeviceList = filteredAggregatedDevice;
+		} catch (Exception e) {
+			this.logger.error("Failed to filterDeviceModel", e);
 		}
 	}
 
@@ -617,13 +635,17 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * Populate status message from the API
 	 */
 	private void populateDeviceStatusMessage() {
-		synchronized (aggregatedDeviceList) {
-			for (int i = 0; i < aggregatedDeviceList.size(); i++) {
-				AggregatedDevice aggregatedDevice = aggregatedDeviceList.get(i);
-				Map<String, String> properties = aggregatedDevice.getProperties();
-				properties.put(QSysReflectConstant.DEVICE_STATUS_MESSAGE, deviceStatusMessageMap.get(aggregatedDevice.getDeviceId()));
-				aggregatedDeviceList.set(i, aggregatedDevice);
+		try {
+			synchronized (aggregatedDeviceList) {
+				for (int i = 0; i < aggregatedDeviceList.size(); i++) {
+					AggregatedDevice aggregatedDevice = aggregatedDeviceList.get(i);
+					Map<String, String> properties = aggregatedDevice.getProperties();
+					properties.put(QSysReflectConstant.DEVICE_STATUS_MESSAGE, deviceStatusMessageMap.get(aggregatedDevice.getDeviceId()));
+					aggregatedDeviceList.set(i, aggregatedDevice);
+				}
 			}
+		} catch (Exception e) {
+			logger.error("Failed to populateDeviceStatusMessage", e);
 		}
 	}
 
@@ -686,7 +708,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 */
 	private void retrieveDevices() {
 		try {
-			String responseDeviceList = this.doGet(QSysReflectConstant.QSYS_URL_CORES, String.class);
+			String responseDeviceList = this.fetchData(QSysReflectConstant.QSYS_URL_CORES, String.class);
 			JsonNode devices = objectMapper.readTree(responseDeviceList);
 			for (int i = 0; i < devices.size(); i++) {
 				JsonNode currentDevice = devices.get(i);
@@ -701,6 +723,10 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 					//filter aggregatedDevice is cores by systemName
 					for (SystemResponse systemResponse : systemResponseList) {
 						for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
+							if (aggregatedDevice == null) {
+								this.logger.warn("Found null AggregatedDevice in aggregatedDeviceList, skipping");
+								continue;
+							}
 							if (filterSystemNameValues.contains(systemResponse.getName()) && aggregatedDevice.getDeviceName().equals(systemResponse.getCoreName())) {
 								aggregatedDevices.add(aggregatedDevice);
 							}
@@ -715,7 +741,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 				aggregatedDevice.setProperties(stats);
 			}
 		} catch (Exception e) {
-			String errorMessage = String.format("Aggregated Device Data Retrieval-Error: %s with cause: %s", e.getMessage(), e.getCause().getMessage());
+			String errorMessage = String.format("Aggregated Device Data Retrieval-Error: %s", e.getMessage());
 			if (logger.isDebugEnabled()) {
 				logger.debug(errorMessage, e);
 			}
@@ -731,7 +757,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	private void populateDeviceDetails(SystemResponse deviceSystem) {
 		try {
 			String deviceId = String.valueOf(deviceSystem.getId());
-			JsonNode responseDeviceList = this.doGet(QSysReflectConstant.QSYS_URL_SYSTEMS + "/" + deviceId + QSysReflectConstant.QSYS_URL_ITEMS, JsonNode.class);
+			JsonNode responseDeviceList = this.fetchData(QSysReflectConstant.QSYS_URL_SYSTEMS + "/" + deviceId + QSysReflectConstant.QSYS_URL_ITEMS, JsonNode.class);
 			for (int i = 0; i < responseDeviceList.size(); i++) {
 				JsonNode currentDevice = responseDeviceList.get(i);
 				deviceStatusMessageMap.put(currentDevice.get(QSysReflectConstant.ID).asText(), currentDevice.get(QSysReflectConstant.STATUS)
@@ -742,7 +768,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 				logger.debug(String.format("New fetched aggregated device list: %s", aggregatedDeviceList));
 			}
 		} catch (Exception e) {
-			String errorMessage = String.format("Aggregated Device Data Retrieval-Error: %s with cause: %s", e.getMessage(), e.getCause().getMessage());
+			String errorMessage = String.format("Aggregated Device Data Retrieval-Error: %s", e.getMessage());
 			if (logger.isDebugEnabled()) {
 				logger.debug(errorMessage, e);
 			}
@@ -757,7 +783,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	public void retrieveSystemInfo() {
 		// Retrieve system information every 30 seconds
 		try {
-			String systemResponse = this.doGet(QSysReflectConstant.QSYS_URL_SYSTEMS, String.class);
+			String systemResponse = this.fetchData(QSysReflectConstant.QSYS_URL_SYSTEMS, String.class);
 			JsonNode systems = objectMapper.readTree(systemResponse);
 			systemResponseList.clear();
 			for (int i = 0; i < systems.size(); i++) {
@@ -765,7 +791,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 				systemResponseList.add(sysRes);
 			}
 		} catch (Exception e) {
-			String errorMessage = String.format("System Information Data Retrieval-Error: %s with cause: %s", e.getMessage(), e.getCause().getMessage());
+			String errorMessage = String.format("System Information Data Retrieval-Error: %s", e.getMessage());
 			systemErrorMessagesList.add(errorMessage);
 			logger.error(errorMessage, e);
 		}
@@ -777,34 +803,42 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * @param stats Map of statistic
 	 */
 	private void populateSystemData(Map<String, String> stats) {
-		if (!systemResponseList.isEmpty()) {
-			if (logger.isDebugEnabled()) {
-				logger.debug("Populating system information data");
-			}
-			Map<String, String> deviceNameAndModelMap = new HashMap<>();
-			synchronized (aggregatedDeviceList) {
-				for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
-					deviceNameAndModelMap.put(aggregatedDevice.getDeviceName(), aggregatedDevice.getDeviceModel());
+		try {
+			if (!systemResponseList.isEmpty()) {
+				if (logger.isDebugEnabled()) {
+					logger.debug("Populating system information data");
 				}
-			}
-			synchronized (systemResponseList) {
-				for (SystemResponse systemResponse : systemResponseList) {
-					stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.SYSTEM_ID.getName()), String.valueOf(systemResponse.getId()));
-					stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.SYSTEM_CODE.getName()), String.valueOf(systemResponse.getCode()));
-					stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.SYSTEM_STATUS.getName()), String.valueOf(systemResponse.getStatusString()));
-					if (systemResponse.getNormalAlert() != null && systemResponse.getFaultAlert() != null && systemResponse.getUnknownAlert() != null && systemResponse.getWarningAlert() != null) {
-						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.ALERTS_NORMAL.getName()), String.valueOf(systemResponse.getNormalAlert()));
-						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.ALERTS_WARNING.getName()), String.valueOf(systemResponse.getWarningAlert()));
-						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.ALERTS_FAULT.getName()), String.valueOf(systemResponse.getFaultAlert()));
-						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.ALERTS_UNKNOWN.getName()), String.valueOf(systemResponse.getUnknownAlert()));
+				Map<String, String> deviceNameAndModelMap = new HashMap<>();
+				synchronized (aggregatedDeviceList) {
+					for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
+						if (aggregatedDevice == null) {
+							this.logger.warn("Found null AggregatedDevice in aggregatedDeviceList, skipping");
+							continue;
+						}
+						deviceNameAndModelMap.put(aggregatedDevice.getDeviceName(), aggregatedDevice.getDeviceModel());
 					}
-					stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.DESIGN_NAME.getName()), String.valueOf(systemResponse.getDesignName()));
-					stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.DESIGN_PLATFORM.getName()), String.valueOf(systemResponse.getDesignPlatform()));
-					stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.UPTIME.getName()), handleNormalizeUptime(systemResponse.getUptime()));
-					stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.CORE_NAME.getName()), String.valueOf(systemResponse.getCoreName()));
-					stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.MODEL.getName()), deviceNameAndModelMap.get(systemResponse.getCoreName()));
+				}
+				synchronized (systemResponseList) {
+					for (SystemResponse systemResponse : systemResponseList) {
+						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.SYSTEM_ID.getName()), String.valueOf(systemResponse.getId()));
+						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.SYSTEM_CODE.getName()), String.valueOf(systemResponse.getCode()));
+						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.SYSTEM_STATUS.getName()), String.valueOf(systemResponse.getStatusString()));
+						if (systemResponse.getNormalAlert() != null && systemResponse.getFaultAlert() != null && systemResponse.getUnknownAlert() != null && systemResponse.getWarningAlert() != null) {
+							stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.ALERTS_NORMAL.getName()), String.valueOf(systemResponse.getNormalAlert()));
+							stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.ALERTS_WARNING.getName()), String.valueOf(systemResponse.getWarningAlert()));
+							stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.ALERTS_FAULT.getName()), String.valueOf(systemResponse.getFaultAlert()));
+							stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.ALERTS_UNKNOWN.getName()), String.valueOf(systemResponse.getUnknownAlert()));
+						}
+						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.DESIGN_NAME.getName()), String.valueOf(systemResponse.getDesignName()));
+						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.DESIGN_PLATFORM.getName()), String.valueOf(systemResponse.getDesignPlatform()));
+						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.UPTIME.getName()), handleNormalizeUptime(systemResponse.getUptime()));
+						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.CORE_NAME.getName()), String.valueOf(systemResponse.getCoreName()));
+						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.MODEL.getName()), deviceNameAndModelMap.get(systemResponse.getCoreName()));
+					}
 				}
 			}
+		} catch (Exception e) {
+			this.logger.error("Failed to populateSystemData", e);
 		}
 	}
 
@@ -914,6 +948,23 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 			return resultList;
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Fail to split string, input from adapter properties is wrong", e);
+		}
+	}
+
+	/**
+	 * Fetches data from the given URL and maps the response to the specified class type.
+	 *
+	 * @param url the endpoint URL to fetch data from
+	 * @param clazz the class type to map the response to
+	 * @param <T> the type of the expected response
+	 * @return an instance of the specified class containing the mapped response data
+	 * @throws ResourceNotReachableException if the request fails or the response cannot be processed
+	 */
+	private <T> T fetchData(String url, Class<T> clazz) {
+		try {
+			return this.doGet(url.replace("//", "/"), clazz);
+		} catch (Exception e) {
+			throw new ResourceNotReachableException("Failed to request to the API", e);
 		}
 	}
 }
