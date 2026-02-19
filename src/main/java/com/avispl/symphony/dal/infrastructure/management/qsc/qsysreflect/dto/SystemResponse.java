@@ -29,6 +29,7 @@ public class SystemResponse {
 	private String designPlatform;
 	private Long uptime;
 	private String coreName;
+	private Integer coreId;
 
 	/**
 	 * Retrieves {@code {@link #id}}
@@ -247,6 +248,24 @@ public class SystemResponse {
 	}
 
 	/**
+	 * Retrieves {@link #coreId}
+	 *
+	 * @return value of {@link #coreId}
+	 */
+	public Integer getCoreId() {
+		return coreId;
+	}
+
+	/**
+	 * Sets {@link #coreId} value
+	 *
+	 * @param coreId new value of {@link #coreId}
+	 */
+	public void setCoreId(Integer coreId) {
+		this.coreId = coreId;
+	}
+
+	/**
 	 * String value of SystemResponse DTO
 	 * @return SystemResponse DTO
 	 */
@@ -265,6 +284,7 @@ public class SystemResponse {
 				", designPlatform='" + designPlatform + '\'' +
 				", uptime=" + uptime +
 				", coreName='" + coreName + '\'' +
+				", coreId='" + coreId + '\'' +
 				'}';
 	}
 }
