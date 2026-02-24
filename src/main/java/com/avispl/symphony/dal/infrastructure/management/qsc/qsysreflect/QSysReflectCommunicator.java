@@ -1053,7 +1053,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * @param segments initial name segments to build name from
 	 * @return compiled device name in String format
 	 * */
-	public static String buildDeviceName(String... segments) {
+	private String buildDeviceName(String... segments) {
 		if (segments == null || segments.length == 0) {
 			return "";
 		}
@@ -1068,6 +1068,6 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 			}
 		}
 
-		return String.join(":", result);
+		return String.join(": ", result);
 	}
 }
