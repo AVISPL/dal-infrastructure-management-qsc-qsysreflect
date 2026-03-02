@@ -701,6 +701,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 		if (logger.isDebugEnabled()) {
 			logger.debug(String.format("New fetched system information list: %s", systemResponse));
 		}
+		//TODO: do not clear this one here, only clear after the fact, if certain devices are not present on the API side.
 		aggregatedDevicesMap.clear();
 		retrieveDevices();
 		if (logger.isDebugEnabled()) {
@@ -715,8 +716,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 */
 	private void retrieveDevices() {
 		try {
-			String responseDeviceList = this.fetchData(QSysReflectConstant.QSYS_URL_CORES, String.class);
-			JsonNode devices = objectMapper.readTree(responseDeviceList);
+			JsonNode devices = this.fetchData(QSysReflectConstant.QSYS_URL_CORES, JsonNode.class);
 			for (int i = 0; i < devices.size(); i++) {
 				JsonNode currentDevice = devices.get(i);
 				deviceStatusMessageMap.put(currentDevice.get(QSysReflectConstant.ID).asText(), currentDevice.get(QSysReflectConstant.STATUS)
@@ -753,7 +753,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 
 				SystemResponse core = byCoreId.get(deviceId);
 				if (core != null) {
-					device.setDeviceName(buildDeviceName(core.getName(), device.getDeviceName()));
+					device.setDeviceName(buildDeviceName(newProps.get("siteName"), device.getDeviceName()));
 				}
 				return device;
 			});
@@ -782,7 +782,11 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 			}
 			List<AggregatedDevice> devices = aggregatedDeviceProcessorDevices.extractDevices(responseDeviceList);
 			for(AggregatedDevice device: devices) {
-				String deviceName = buildDeviceName(deviceSystem.getName(), deviceSystem.getCoreName(), device.getDeviceName());
+				Map<String, String> deviceProperties = device.getProperties();
+				String deviceName = device.getDeviceName();
+				if (deviceProperties.containsKey(QSysReflectConstant.SITE_NAME)) {
+					deviceName = buildDeviceName(deviceProperties.get(QSysReflectConstant.SITE_NAME), StringUtils.isNullOrEmpty(deviceName) ? QSysReflectConstant.UNDEFINED : deviceName);
+				}
 
 				Optional<AggregatedDevice> existingDevice = aggregatedDevicesMap.entrySet().stream().filter(ed -> Objects.equals(ed.getKey(), device.getDeviceId())).findFirst().map(Map.Entry::getValue);
 				if (existingDevice.isPresent()) {
@@ -814,8 +818,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	public void retrieveSystemInfo() {
 		// Retrieve system information every 30 seconds
 		try {
-			String response = this.fetchData(QSysReflectConstant.QSYS_URL_SYSTEMS, String.class);
-			JsonNode systems = objectMapper.readTree(response);
+			JsonNode systems = this.fetchData(QSysReflectConstant.QSYS_URL_SYSTEMS, JsonNode.class);
 			systemResponse.clear();
 			for (int i = 0; i < systems.size(); i++) {
 				SystemResponse sysRes = objectMapper.treeToValue(systems.get(i), SystemResponse.class);
@@ -831,7 +834,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	/**
 	 * Populate data to statistics
 	 *
-	 * @param stats Map of statistic
+	 * @param stats Map of monitored statistics
 	 */
 	private void populateSystemData(Map<String, String> stats) {
 		try {
