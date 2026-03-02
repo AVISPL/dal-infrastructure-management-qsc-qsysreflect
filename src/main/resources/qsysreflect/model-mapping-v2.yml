@@ -11,6 +11,10 @@ models:
         manufacturer: get("manufacturer")
         location: get("location")
         deviceType: get("type")
+        firmwareVersion: get("firmware")
+        siteId: get("site")?.get("id")
+        siteName: get("site")?.get("name")
+        deviceUptime: get("uptime")
       mapping:
         deviceType: get("type")
         deviceModel: get("model")
@@ -19,3 +23,7 @@ models:
         manufacturer: get("manufacturer")
         location: get("location")
         startedAt: get("startedAt")
+        serialNumber: get("serial")
+        deviceUptime: get("uptime")
+        siteId: get("site")?.get("id")
+        siteName: get("site")?.get("name")
