@@ -753,7 +753,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 
 				SystemResponse core = byCoreId.get(deviceId);
 				if (core != null) {
-					device.setDeviceName(buildDeviceName(newProps.get("siteName"), device.getDeviceName()));
+					device.setDeviceName(buildDeviceName(core.getName(), newProps.get("siteName"), device.getDeviceName()));
 				}
 				return device;
 			});
@@ -785,7 +785,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 				Map<String, String> deviceProperties = device.getProperties();
 				String deviceName = device.getDeviceName();
 				if (deviceProperties.containsKey(QSysReflectConstant.SITE_NAME)) {
-					deviceName = buildDeviceName(deviceProperties.get(QSysReflectConstant.SITE_NAME), StringUtils.isNullOrEmpty(deviceName) ? QSysReflectConstant.UNDEFINED : deviceName);
+					deviceName = buildDeviceName(deviceSystem.getName(), deviceProperties.get(QSysReflectConstant.SITE_NAME), StringUtils.isNullOrEmpty(deviceName) ? QSysReflectConstant.UNDEFINED : deviceName);
 				}
 
 				Optional<AggregatedDevice> existingDevice = aggregatedDevicesMap.entrySet().stream().filter(ed -> Objects.equals(ed.getKey(), device.getDeviceId())).findFirst().map(Map.Entry::getValue);
