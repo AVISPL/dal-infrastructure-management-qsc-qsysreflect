@@ -882,8 +882,8 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * @param dynamicStatistics to save dynamic statistics to
 	 * */
 	private void populateAdapterMetadata(Map<String, String> statistics, Map<String, String> dynamicStatistics) {
-		statistics.put(QSysReflectConstant.ADAPTER_VERSION, adapterProperties.getProperty("aggregator.version"));
-		statistics.put(QSysReflectConstant.ADAPTER_BUILD_DATE, adapterProperties.getProperty("aggregator.build.date"));
+		statistics.put(QSysReflectConstant.ADAPTER_VERSION, adapterProperties.getProperty("adapter.version"));
+		statistics.put(QSysReflectConstant.ADAPTER_BUILD_DATE, adapterProperties.getProperty("adapter.build.date"));
 
 		long adapterUptime = System.currentTimeMillis() - adapterInitializationTimestamp;
 		statistics.put(QSysReflectConstant.ADAPTER_UPTIME_MIN, String.valueOf(adapterUptime / (1000*60)));
