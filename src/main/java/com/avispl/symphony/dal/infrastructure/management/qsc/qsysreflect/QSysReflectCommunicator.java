@@ -607,7 +607,8 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 							}
 						}
 					}
-					filteredAggregatedDevice.forEach(device -> aggregatedDevicesMap.put(device.getDeviceId(), device));
+				aggregatedDevicesMap = filteredAggregatedDevice.stream()
+						.collect(Collectors.toMap(AggregatedDevice::getDeviceId, Function.identity()));
 			}
 		} catch (Exception e) {
 			this.logger.error("Failed to populateFilter", e);
@@ -632,7 +633,8 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 						}
 					}
 				}
-				filteredAggregatedDevice.forEach(device -> aggregatedDevicesMap.put(device.getDeviceId(), device));
+				aggregatedDevicesMap = filteredAggregatedDevice.stream()
+						.collect(Collectors.toMap(AggregatedDevice::getDeviceId, Function.identity()));
 			}
 		} catch (Exception e) {
 			this.logger.error("Unable to apply device model (filterModel property) filtering.", e);
