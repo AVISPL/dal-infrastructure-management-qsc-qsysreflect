@@ -601,6 +601,9 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 				List<AggregatedDevice> filteredAggregatedDevice = new ArrayList<>();
 					for (AggregatedDevice aggregatedDevice : aggregatedDevicesMap.values()) {
 						Map<String, String> properties = aggregatedDevice.getProperties();
+						if (properties.containsKey(QSysReflectConstant.DEVICE_TYPE) && "Processor".equalsIgnoreCase(properties.get(QSysReflectConstant.DEVICE_TYPE))) {
+							continue;
+						}
 						for (String type : filterTypeValues) {
 							if (type.equals(properties.get(propertiesName))) {
 								filteredAggregatedDevice.add(aggregatedDevice);
@@ -726,7 +729,6 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 			}
 
 			List<AggregatedDevice> extractedDevices = aggregatedDeviceProcessorCores.extractDevices(devices);
-			extractedDevices.removeIf(device -> "Processor".equalsIgnoreCase(device.getType()));
 			if (StringUtils.isNotNullOrEmpty(filterSystemName)) {
 				List<String> filterSystemNameValues = handleListExtractFilter(filterSystemName);
 				synchronized (systemResponse) {
@@ -786,9 +788,6 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 			}
 			List<AggregatedDevice> devices = aggregatedDeviceProcessorDevices.extractDevices(responseDeviceList);
 			for(AggregatedDevice device: devices) {
-				if ("Processor".equalsIgnoreCase(device.getType())) {
-					continue;
-				}
 				Map<String, String> deviceProperties = device.getProperties();
 				String deviceName = device.getDeviceName();
 				if (deviceProperties.containsKey(QSysReflectConstant.SITE_NAME)) {
