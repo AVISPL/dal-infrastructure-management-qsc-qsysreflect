@@ -28,7 +28,17 @@ public class QSysReflectConstant {
 	public static final String RUNNING = "Running";
 	public static final String OK = "OK";
 	public static final String DEVICE_TYPE = "deviceType";
+	public static final String SITE_NAME = "siteName";
 	public static final String CORE = "Core";
 	public static final String MODEL_MAPPING_QSYS_CORE = "qsysreflect/model-mapping.yml";
-	public static final String MODEL_MAPPING_OTHER_THAN_QSYS_CORE = "qsysreflect/model-mapping-v2.yml";
+	public static final String MODEL_MAPPING_GENERIC = "qsysreflect/model-mapping-v2.yml";
+	public static final String UNDEFINED = "Undefined";
+
+	public static final String ADAPTER_UPTIME = "AdapterUptime";
+	public static final String ADAPTER_UPTIME_MIN = "AdapterUptime(min)";
+	public static final String ADAPTER_BUILD_DATE = "AdapterBuildDate";
+	public static final String ADAPTER_VERSION = "AdapterVersion";
+	public static final String LAST_MONITORING_CYCLE_DURATION_S = "LastMonitoringCycleDuration(sec)";
+	public static final String MONITORED_DEVICES_TOTAL = "MonitoredDevicesTotal";
+	public static final String SYSTEM_MONITORING_CYCLE = "MonitoringCycleInterval(min)";
 }

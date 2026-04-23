@@ -78,6 +78,9 @@ public class SystemResponseDeserializer extends StdDeserializer<SystemResponse> 
 		if (jsonNode.get("core").get("name") != null) {
 			systemResponse.setCoreName(jsonNode.get("core").get("name").asText());
 		}
+		if (jsonNode.get("core").get("id") != null) {
+			systemResponse.setCoreId(jsonNode.get("core").get("id").asInt());
+		}
 		return systemResponse;
 	}
 }
