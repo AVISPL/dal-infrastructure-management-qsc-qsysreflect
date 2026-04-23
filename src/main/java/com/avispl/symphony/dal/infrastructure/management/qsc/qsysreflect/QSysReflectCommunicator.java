@@ -726,6 +726,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 			}
 
 			List<AggregatedDevice> extractedDevices = aggregatedDeviceProcessorCores.extractDevices(devices);
+			extractedDevices.removeIf(device -> "Processor".equalsIgnoreCase(device.getType()));
 			if (StringUtils.isNotNullOrEmpty(filterSystemName)) {
 				List<String> filterSystemNameValues = handleListExtractFilter(filterSystemName);
 				synchronized (systemResponse) {
@@ -777,6 +778,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 		try {
 			String deviceId = String.valueOf(deviceSystem.getId());
 			JsonNode responseDeviceList = this.fetchData(QSysReflectConstant.QSYS_URL_SYSTEMS + "/" + deviceId + QSysReflectConstant.QSYS_URL_ITEMS, JsonNode.class);
+			// TODO: make it a single for-loop run
 			for (int i = 0; i < responseDeviceList.size(); i++) {
 				JsonNode currentDevice = responseDeviceList.get(i);
 				deviceStatusMessageMap.put(currentDevice.get(QSysReflectConstant.ID).asText(), currentDevice.get(QSysReflectConstant.STATUS)
@@ -784,6 +786,9 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 			}
 			List<AggregatedDevice> devices = aggregatedDeviceProcessorDevices.extractDevices(responseDeviceList);
 			for(AggregatedDevice device: devices) {
+				if ("Processor".equalsIgnoreCase(device.getType())) {
+					continue;
+				}
 				Map<String, String> deviceProperties = device.getProperties();
 				String deviceName = device.getDeviceName();
 				if (deviceProperties.containsKey(QSysReflectConstant.SITE_NAME)) {
@@ -1027,29 +1032,6 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 		}
 	}
 
-//	public static String buildDeviceName(String... segments) {
-//		if (segments == null || segments.length == 0) {
-//			return "";
-//		}
-//
-//		List<String> result = new ArrayList<>(segments.length);
-//
-//		// Always keep the 1st segment
-//		result.add(segments[0]);
-//
-//		if (segments.length > 1) {
-//			result.add(segments[1]);
-//		}
-//
-//		for (int i = 2; i < segments.length; i++) {
-//			if (!Objects.equals(segments[i], segments[i - 1])) {
-//				result.add(segments[i]);
-//			}
-//		}
-//
-//		return String.join(":", result);
-//	}
-//
 	/**
 	 * Build device name based on N initial entries. If 2 consecutive entries are identical - they are shrinked
 	 * down to a single entry. So that DeviceXXX:DeviceXXX:DeviceXXX turns into DeviceXXX, and
