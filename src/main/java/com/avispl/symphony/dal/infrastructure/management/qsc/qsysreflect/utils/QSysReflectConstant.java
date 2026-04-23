@@ -28,6 +28,8 @@ public class QSysReflectConstant {
 	public static final String RUNNING = "Running";
 	public static final String OK = "OK";
 	public static final String DEVICE_TYPE = "deviceType";
+	public static final String STATUS_MESSAGE = "statusMessage";
+	public static final String PROCESSOR = "Processor";
 	public static final String SITE_NAME = "siteName";
 	public static final String CORE = "Core";
 	public static final String MODEL_MAPPING_QSYS_CORE = "qsysreflect/model-mapping.yml";
