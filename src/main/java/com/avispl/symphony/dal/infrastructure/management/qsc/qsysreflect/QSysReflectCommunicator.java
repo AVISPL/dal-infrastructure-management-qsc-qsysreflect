@@ -268,6 +268,15 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	private Map<String, AggregatedDevice> aggregatedDevicesMap = new ConcurrentHashMap<>();
 
 	/**
+	 * List of Systems retrieved during last cycle
+	 * */
+	private Set<String> lastSystemsRetrieved = new HashSet<String>();
+
+	/**
+	 * List of Cores retrieved during last cycle
+	 * */
+	private Set<String> lastCoresRetrieved = new HashSet<String>();
+	/**
 	 * List of System Response
 	 */
 	private final List<SystemResponse> systemResponse = Collections.synchronizedList(new ArrayList<>());
@@ -601,9 +610,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 				List<AggregatedDevice> filteredAggregatedDevice = new ArrayList<>();
 					for (AggregatedDevice aggregatedDevice : aggregatedDevicesMap.values()) {
 						Map<String, String> properties = aggregatedDevice.getProperties();
-						if (properties.containsKey(QSysReflectConstant.DEVICE_TYPE) && "Processor".equalsIgnoreCase(properties.get(QSysReflectConstant.DEVICE_TYPE))) {
-							continue;
-						}
+
 						for (String type : filterTypeValues) {
 							if (type.equals(properties.get(propertiesName))) {
 								filteredAggregatedDevice.add(aggregatedDevice);
@@ -722,13 +729,9 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	private void retrieveDevices() {
 		try {
 			JsonNode devices = this.fetchData(QSysReflectConstant.QSYS_URL_CORES, JsonNode.class);
-			for (int i = 0; i < devices.size(); i++) {
-				JsonNode currentDevice = devices.get(i);
-				deviceStatusMessageMap.put(currentDevice.get(QSysReflectConstant.ID).asText(), currentDevice.get(QSysReflectConstant.STATUS)
-						.get(QSysReflectConstant.MESSAGE).asText());
-			}
 
 			List<AggregatedDevice> extractedDevices = aggregatedDeviceProcessorCores.extractDevices(devices);
+			Set<String> localCores = new HashSet<>();
 			if (StringUtils.isNotNullOrEmpty(filterSystemName)) {
 				List<String> filterSystemNameValues = handleListExtractFilter(filterSystemName);
 				synchronized (systemResponse) {
@@ -739,17 +742,35 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 								this.logger.warn("Found null AggregatedDevice in aggregatedDeviceList, skipping");
 								continue;
 							}
+							Map<String, String> deviceProperties = aggregatedDevice.getProperties();
+							deviceStatusMessageMap.put(aggregatedDevice.getDeviceId(), deviceProperties.get(QSysReflectConstant.STATUS_MESSAGE));
 							if (filterSystemNameValues.contains(systemResponse.getName()) && aggregatedDevice.getDeviceName().equals(systemResponse.getCoreName())) {
-								aggregatedDevicesMap.put(aggregatedDevice.getDeviceId(), aggregatedDevice);
+								String deviceId = aggregatedDevice.getDeviceId();
+								localCores.add(deviceId);
+								aggregatedDevicesMap.put(deviceId, aggregatedDevice);
 							}
 						}
 					}
 				}
 			} else {
-				extractedDevices.forEach(device -> aggregatedDevicesMap.put(device.getDeviceId(), device));
+				extractedDevices.forEach(device -> {
+					String deviceId = device.getDeviceId();
+					localCores.add(deviceId);
+					aggregatedDevicesMap.put(deviceId, device);
+				});
 			}
 			Map<String, SystemResponse> byCoreId =
 					systemResponse.stream().collect(Collectors.toMap(r -> String.valueOf(r.getCoreId()), Function.identity(), (a, b) -> a));
+
+			if (lastCoresRetrieved.isEmpty()) {
+				lastCoresRetrieved.addAll(localCores);
+			} else {
+				Set<String> missingCores = new HashSet<>(lastCoresRetrieved);
+				missingCores.removeAll(localCores);
+				aggregatedDevicesMap.keySet().removeAll(missingCores);
+				// replace cached list with the actual latest cores retrieved
+				lastCoresRetrieved = new HashSet<>(localCores);
+			}
 
 			aggregatedDevicesMap.replaceAll((deviceId, device) -> {
 				Map<String,String> newProps = new HashMap<>(device.getProperties());
@@ -780,21 +801,21 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 		try {
 			String deviceId = String.valueOf(deviceSystem.getId());
 			JsonNode responseDeviceList = this.fetchData(QSysReflectConstant.QSYS_URL_SYSTEMS + "/" + deviceId + QSysReflectConstant.QSYS_URL_ITEMS, JsonNode.class);
-			// TODO: make it a single for-loop run
-			for (int i = 0; i < responseDeviceList.size(); i++) {
-				JsonNode currentDevice = responseDeviceList.get(i);
-				deviceStatusMessageMap.put(currentDevice.get(QSysReflectConstant.ID).asText(), currentDevice.get(QSysReflectConstant.STATUS)
-						.get(QSysReflectConstant.MESSAGE).asText());
-			}
+
 			List<AggregatedDevice> devices = aggregatedDeviceProcessorDevices.extractDevices(responseDeviceList);
+			Set<String> localSystems = new HashSet<>();
+
 			for(AggregatedDevice device: devices) {
 				Map<String, String> deviceProperties = device.getProperties();
+
+				deviceStatusMessageMap.put(device.getDeviceId(), deviceProperties.get(QSysReflectConstant.STATUS_MESSAGE));
 				String deviceName = device.getDeviceName();
 				if (deviceProperties.containsKey(QSysReflectConstant.SITE_NAME)) {
 					deviceName = buildDeviceName(deviceSystem.getName(), deviceProperties.get(QSysReflectConstant.SITE_NAME), StringUtils.isNullOrEmpty(deviceName) ? QSysReflectConstant.UNDEFINED : deviceName);
 				}
 
 				Optional<AggregatedDevice> existingDevice = aggregatedDevicesMap.entrySet().stream().filter(ed -> Objects.equals(ed.getKey(), device.getDeviceId())).findFirst().map(Map.Entry::getValue);
+				String retrievedSystemId = device.getDeviceId();
 				if (existingDevice.isPresent()) {
 					AggregatedDevice ed = existingDevice.get();
 					ed.setProperties(new HashMap<>(device.getProperties()));
@@ -802,9 +823,21 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 					ed.setDeviceName(deviceName);
 				} else {
 					device.setDeviceName(deviceName);
-					aggregatedDevicesMap.put(device.getDeviceId(), device);
+					aggregatedDevicesMap.put(retrievedSystemId, device);
+				}
+				localSystems.add(retrievedSystemId);
+
+				if (lastSystemsRetrieved.isEmpty()) {
+					lastSystemsRetrieved.addAll(localSystems);
+				} else {
+					Set<String> missingSystems = new HashSet<>(lastSystemsRetrieved);
+					missingSystems.removeAll(localSystems);
+					aggregatedDevicesMap.keySet().removeAll(missingSystems);
+					// replace cached list with the actual latest systems retrieved
+					lastSystemsRetrieved = new HashSet<>(localSystems);
 				}
 			}
+
 			if (logger.isDebugEnabled()) {
 				logger.debug(String.format("New fetched aggregated device list: %s", aggregatedDevicesMap));
 			}
@@ -913,6 +946,11 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 		filterDeviceModel();
 		populateFilter(filterDeviceStatusMessage, QSysReflectConstant.DEVICE_STATUS_MESSAGE);
 		populateFilter(filterType, QSysReflectConstant.DEVICE_TYPE);
+
+		aggregatedDevicesMap.values().removeIf(deviceEntry -> {
+			Map<String, String> properties = deviceEntry.getProperties();
+			return QSysReflectConstant.PROCESSOR.equalsIgnoreCase(properties.get(QSysReflectConstant.DEVICE_TYPE));
+		});
 	}
 
 	/**
