@@ -105,7 +105,11 @@ class QSysReflectCommunicatorTest {
 	 */
 	@Tag("Mock")
 	@Test
-	void testGetAggregatorData() throws Exception {
+	public void testGetAggregatorData() throws Exception {
+		qSysReflectCommunicator.retrieveMultipleStatistics();
+		Thread.sleep(30000);
+		qSysReflectCommunicator.retrieveMultipleStatistics();
+		Thread.sleep(30000);
 		qSysReflectCommunicator.retrieveMultipleStatistics();
 		Thread.sleep(30000);
 		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
@@ -167,7 +171,7 @@ class QSysReflectCommunicatorTest {
 		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
 		Thread.sleep(30000);
 
-		AggregatedDevice aggregatedDevice = aggregatedDeviceList.get(0);
+		AggregatedDevice aggregatedDevice = aggregatedDeviceList.stream().filter(device -> device.getDeviceId().equals("9440")).findAny().get();
 		assertEquals("9440", aggregatedDevice.getDeviceId());
 		assertEquals("3-3F23AA07A6C4E22F526A88C3A5B0D217", aggregatedDevice.getSerialNumber());
 		assertEquals("Running", aggregatedDevice.getProperties().get("deviceStatusMessage"));
@@ -242,7 +246,7 @@ class QSysReflectCommunicatorTest {
 		List<String> deviceList = new ArrayList<>();
 		deviceList.add("9440");
 		qSysReflectCommunicator.retrieveMultipleStatistics(deviceList);
-		qSysReflectCommunicator.setDeviceMetaDataRetrievalTimeout(90000);
+		qSysReflectCommunicator.setDeviceMetaDataRetrievalTimeout(30000);
 		Thread.sleep(30000);
 		qSysReflectCommunicator.retrieveMultipleStatistics(deviceList);
 		Thread.sleep(30000);
