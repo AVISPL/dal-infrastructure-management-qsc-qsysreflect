@@ -8,7 +8,7 @@ models:
         siteId: get("site")?.get("id")
         siteName: get("site")?.get("name")
         deviceUptime: get("uptime")
-        statusMessage: get("status")?.get("message")
+        deviceStatusMessage: get("status")?.get("message")
       mapping:
         deviceModel: get("model")
         deviceName: get("name")
