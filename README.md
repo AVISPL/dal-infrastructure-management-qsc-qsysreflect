@@ -6,13 +6,13 @@ Note: Not to be confused with Q-SYS Core Aggregator.
 
 Symphony integrates with Q-SYS Reflect Enterprise Manager to provide comprehensive monitoring of the Q-SYS audio, video, and control (AV&C) ecosystem.
 
-## Main use cases
+## Main use cases for Q-SYS Reflect Integration
 - **Monitor** Q-SYS Core system health, device status, and alert conditions across the organization
 - **Track** individual device details - firmware version, uptime, serial number, site information, and device status messages
 - **Filter** monitored devices by model, type, system name, or device status message to focus on relevant assets
 - **Inventory** keep Q-SYS Cores and associated AV devices (streaming I/O, cameras, conferencing endpoints, touch screens, etc.) in check
 
-## Prerequisites and where to start
+## Prerequisites for Q-SYS Reflect Device Connection Setup 
 Q-SYS Reflect Aggregator communicates with the Q-SYS Reflect Enterprise Manager API on behalf of an authenticated account using an API Token.
 
 To get started:
@@ -74,7 +74,7 @@ Note: The AND condition is used when multiple filters are specified simultaneous
 
 For detailed information on the aggregator and its configuration, please refer to our knowledgebase -> https://symphony.knowledgeowl.com/help/q-sys-reflect-enterprise-manager-aggregator-technical-breakdown
 
-## Available Monitored Data
+## Available Monitored Data for Q-SYS Reflect Aggregator
 
 Q-SYS Reflect Aggregator monitored data consists of 2 parts: Aggregator extended properties and Device extended properties.
 
@@ -115,7 +115,7 @@ Available statuses when aggregated device model is not Q-SYS Core:
 | Fault | The device is malfunctioning or is mis-configured |
 | Not Present | Appears when the device is not connected to the network and the Is Required component property is set to 'No' |
 
-## Troubleshooting
+## Troubleshooting for Q-SYS Reflect Enterprise Manager Integration
 
 **Troubleshooting guidance**
 - If an error occurs, focus only on troubleshooting steps that are provided in the section below.
@@ -138,9 +138,9 @@ Available statuses when aggregated device model is not Q-SYS Core:
 
 If none of the recommended steps help, please enter an SOS ticket at {https://avi-spl.atlassian.net/servicedesk/customer/portals}
 
-## What AI Assistant can do with it:
+## What AI Assistant can do with the Q-SYS Reflect Enterprise Manager Integration:
 - Find Q-SYS Reflect Aggregated Devices (Q-SYS Reflect Aggregator as Monitoring Proxy)
 - Verify Q-SYS Reflect Aggregator configuration
 
-## What AI Assistant cannot do with it:
+## What AI Assistant cannot do with the Q-SYS Reflect Enterprise Manager Integration:
 - Provision the devices
