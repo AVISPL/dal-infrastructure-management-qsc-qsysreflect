@@ -5,6 +5,7 @@ This document covers Q-SYS Reflect Enterprise Manager Aggregator Capabilities an
 Note: Not to be confused with Q-SYS Core Aggregator.
 
 Symphony integrates with Q-SYS Reflect Enterprise Manager to provide comprehensive monitoring of the Q-SYS audio, video, and control (AV&C) ecosystem.
+
 Main features are: real-time Q-SYS system health monitoring, Core and peripheral device tracking, alert and status management, and remote management capabilities across the entire Q-SYS Reflect organization.
 
 ## Main use cases
