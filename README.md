@@ -129,6 +129,7 @@ Available statuses when aggregated device model is not Q-SYS Core:
 
 **API Error**
 - Check the API error description.
+- Verify the Management Address is set to reflect.qsc.com and Port is 443
 - Ensure the Q-SYS Reflect account has the necessary permissions to access the organization's device data
 
 **Link Error / Ping Timeout**
