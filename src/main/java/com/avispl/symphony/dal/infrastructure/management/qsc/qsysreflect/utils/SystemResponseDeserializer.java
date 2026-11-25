@@ -41,64 +41,42 @@ public class SystemResponseDeserializer extends StdDeserializer<SystemResponse> 
 	public SystemResponse deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
 		JsonNode jsonNode = jsonParser.getCodec().readTree(jsonParser);
 		SystemResponse systemResponse = new SystemResponse();
-		// path() returns a missing node instead of null, so an absent container (status, details, design, core) doesn't throw
-		JsonNode idNode = jsonNode.path("id");
-		if (hasValue(idNode)) {
-			systemResponse.setId(idNode.asInt());
+		// at() returns a missing node instead of null, so an absent status, details, design or core doesn't throw
+		JsonNode id = value(jsonNode, "/id");
+		if (id != null) {
+			systemResponse.setId(id.asInt());
 		}
-		JsonNode codeNode = jsonNode.path("code");
-		if (hasValue(codeNode)) {
-			systemResponse.setCode(codeNode.asText());
-		}
-		JsonNode nameNode = jsonNode.path("name");
-		if (hasValue(nameNode)) {
-			systemResponse.setName(nameNode.asText());
-		}
-		JsonNode statusNode = jsonNode.path("status");
-		JsonNode messageNode = statusNode.path("message");
-		if (hasValue(messageNode)) {
-			systemResponse.setStatusString(messageNode.asText());
-		}
-		JsonNode itemsNode = statusNode.path("details").path("items");
-		if (hasValue(itemsNode.path("normal"))) {
-			systemResponse.setNormalAlert(itemsNode.path("normal").asInt());
-		}
-		if (hasValue(itemsNode.path("warning"))) {
-			systemResponse.setWarningAlert(itemsNode.path("warning").asInt());
-		}
-		if (hasValue(itemsNode.path("fault"))) {
-			systemResponse.setFaultAlert(itemsNode.path("fault").asInt());
-		}
-		if (hasValue(itemsNode.path("unknown"))) {
-			systemResponse.setUnknownAlert(itemsNode.path("unknown").asInt());
-		}
-		JsonNode designNode = jsonNode.path("design");
-		if (hasValue(designNode.path("name"))) {
-			systemResponse.setDesignName(designNode.path("name").asText());
-		}
-		if (hasValue(designNode.path("platform"))) {
-			systemResponse.setDesignPlatform(designNode.path("platform").asText());
-		}
-		if (hasValue(designNode.path("uptime"))) {
-			systemResponse.setUptime(designNode.path("uptime").asLong());
-		}
-		JsonNode coreNode = jsonNode.path("core");
-		if (hasValue(coreNode.path("name"))) {
-			systemResponse.setCoreName(coreNode.path("name").asText());
-		}
-		if (hasValue(coreNode.path("id"))) {
-			systemResponse.setCoreId(coreNode.path("id").asInt());
-		}
+		systemResponse.setCode(text(jsonNode, "/code"));
+		systemResponse.setName(text(jsonNode, "/name"));
+		systemResponse.setStatusString(text(jsonNode, "/status/message"));
+		systemResponse.setNormalAlert(integer(jsonNode, "/status/details/items/normal"));
+		systemResponse.setWarningAlert(integer(jsonNode, "/status/details/items/warning"));
+		systemResponse.setFaultAlert(integer(jsonNode, "/status/details/items/fault"));
+		systemResponse.setUnknownAlert(integer(jsonNode, "/status/details/items/unknown"));
+		systemResponse.setDesignName(text(jsonNode, "/design/name"));
+		systemResponse.setDesignPlatform(text(jsonNode, "/design/platform"));
+		JsonNode uptime = value(jsonNode, "/design/uptime");
+		systemResponse.setUptime(uptime != null ? uptime.asLong() : null);
+		systemResponse.setCoreName(text(jsonNode, "/core/name"));
+		systemResponse.setCoreId(integer(jsonNode, "/core/id"));
 		return systemResponse;
 	}
 
 	/**
-	 * Check that a node is present and not a JSON null.
-	 *
-	 * @param node node to check
-	 * @return true if the node has a value
+	 * Node at a JSON pointer, or null when it is missing or a JSON null.
 	 */
-	private static boolean hasValue(JsonNode node) {
-		return !node.isMissingNode() && !node.isNull();
+	private static JsonNode value(JsonNode node, String pointer) {
+		JsonNode value = node.at(pointer);
+		return value.isMissingNode() || value.isNull() ? null : value;
+	}
+
+	private static String text(JsonNode node, String pointer) {
+		JsonNode value = value(node, pointer);
+		return value != null ? value.asText() : null;
+	}
+
+	private static Integer integer(JsonNode node, String pointer) {
+		JsonNode value = value(node, pointer);
+		return value != null ? value.asInt() : null;
 	}
 }
