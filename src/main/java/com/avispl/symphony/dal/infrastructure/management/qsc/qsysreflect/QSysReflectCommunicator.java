@@ -705,6 +705,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 
 			if (!StringUtils.isNullOrEmpty(uptime)) {
 				properties.put(QSysReflectConstant.DEVICE_UPTIME, handleNormalizeUptime(Long.parseLong(uptime)));
+				putUptimeMinutes(properties, QSysReflectConstant.DEVICE_UPTIME_MIN, Long.parseLong(uptime));
 			} else if (!StringUtils.isNullOrEmpty(startAt)) {
 				properties.put(QSysReflectConstant.START_AT, handleNormalizeUptime(Long.parseLong(startAt)));
 			} else {
@@ -819,7 +820,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 				device.setProperties(newProps);
 				SystemResponse core = byCoreId.get(deviceId);
 				if (core != null) {
-					String deviceName = buildDeviceName(core.getName(), newProps.get("siteName"), device.getDeviceName());
+					String deviceName = buildDeviceName(core.getName(), newProps.get(QSysReflectConstant.SITE_NAME), device.getDeviceName());
 					device.setDeviceName(deviceName);
 					newProps.put(QSysReflectConstant.DEVICE_NAME, deviceName);
 				}
@@ -958,6 +959,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.DESIGN_NAME.getName()), valueOrNone(systemResponse.getDesignName()));
 						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.DESIGN_PLATFORM.getName()), valueOrNone(systemResponse.getDesignPlatform()));
 						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.UPTIME.getName()), handleNormalizeUptime(systemResponse.getUptime()));
+						putUptimeMinutes(stats, String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.UPTIME_MIN.getName()), systemResponse.getUptime());
 						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.CORE_NAME.getName()), valueOrNone(systemResponse.getCoreName()));
 						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.MODEL.getName()), valueOrNone(deviceNameAndModelMap.get(systemResponse.getCoreName())));
 					}
@@ -1082,13 +1084,31 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	}
 
 	/**
-	 * Value for a statistic: the value, or None when the system doesn't report it.
+	 * Value for a statistic: the value, or N/A when the system doesn't report it.
 	 *
 	 * @param value value reported by Q-SYS Reflect
-	 * @return value or None
+	 * @return value or N/A
 	 */
 	private static String valueOrNone(String value) {
 		return StringUtils.isNullOrEmpty(value) ? QSysReflectConstant.NONE : value;
+	}
+
+	/**
+	 * Put the uptime in whole minutes, the numeric counterpart of an uptime property. Skipped when the start time is
+	 * unknown or in the future.
+	 *
+	 * @param properties properties to put the value to
+	 * @param name property name
+	 * @param startTimestamp start time reported by Q-SYS Reflect, in epoch milliseconds
+	 */
+	private static void putUptimeMinutes(Map<String, String> properties, String name, Long startTimestamp) {
+		if (startTimestamp == null) {
+			return;
+		}
+		long minutes = (System.currentTimeMillis() - startTimestamp) / 60000;
+		if (minutes >= 0) {
+			properties.put(name, String.valueOf(minutes));
+		}
 	}
 
 	/**
