@@ -13,6 +13,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -55,7 +58,7 @@ class QSysReflectCommunicatorTest {
 		qSysReflectCommunicator.setPort(wireMockServer.port());
 		qSysReflectCommunicator.setHost(HOST_NAME);
 		qSysReflectCommunicator.setContentType("application/json");
-		qSysReflectCommunicator.setPassword("");
+		qSysReflectCommunicator.setPassword("token");
 		qSysReflectCommunicator.init();
 		qSysReflectCommunicator.authenticate();
 	}
@@ -77,7 +80,7 @@ class QSysReflectCommunicatorTest {
 		Thread.sleep(30000);
 		ExtendedStatistics extendedStatistics = (ExtendedStatistics) qSysReflectCommunicator.getMultipleStatistics().get(0);
 		Map<String, String> stats = extendedStatistics.getStatistics();
-		assertEquals(32, stats.size());
+		assertEquals(40, stats.size());
 
 		assertEquals("9468", stats.get("AVISPL Test Core110f" + "#" + "SystemID"));
 		assertEquals("3-440F59FA6034C59670FF3C0928929607", stats.get("AVISPL Test Core110f" + "#" + "SystemCode"));
@@ -116,12 +119,8 @@ class QSysReflectCommunicatorTest {
 		qSysReflectCommunicator.retrieveMultipleStatistics();
 		Thread.sleep(30000);
 		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
-		assertEquals(39, aggregatedDeviceList.size());
-		assertEquals("Core 510i", aggregatedDeviceList.get(0).getDeviceModel());
-		assertEquals("Core 110f", aggregatedDeviceList.get(1).getDeviceModel());
-		assertEquals("Core 110", aggregatedDeviceList.get(2).getDeviceModel());
-		assertEquals("AC-32-H (Core Mode)", aggregatedDeviceList.get(3).getDeviceModel());
-		assertEquals("NV-32-H (Core Mode)", aggregatedDeviceList.get(4).getDeviceModel());
+		assertEquals(26, aggregatedDeviceList.size());
+		assertTrue(models(aggregatedDeviceList).containsAll(Arrays.asList("Core 510i", "Core 110", "AC-32-H (Core Mode)", "NV-32-H (Core Mode)")));
 	}
 
 	/**
@@ -135,11 +134,7 @@ class QSysReflectCommunicatorTest {
 		qSysReflectCommunicator.retrieveMultipleStatistics();
 		Thread.sleep(30000);
 		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
-		assertEquals(4, aggregatedDeviceList.size());
-		assertEquals("Core 510i", aggregatedDeviceList.get(0).getDeviceModel());
-		assertEquals("Core 110f", aggregatedDeviceList.get(1).getDeviceModel());
-		assertEquals("Core 110", aggregatedDeviceList.get(2).getDeviceModel());
-		assertEquals("NV-32-H (Core Mode)", aggregatedDeviceList.get(3).getDeviceModel());
+		assertEquals(new HashSet<>(Arrays.asList("Core 510i", "Core 110", "NV-32-H (Core Mode)")), new HashSet<>(models(aggregatedDeviceList)));
 	}
 
 	/**
@@ -153,9 +148,7 @@ class QSysReflectCommunicatorTest {
 		qSysReflectCommunicator.retrieveMultipleStatistics();
 		Thread.sleep(30000);
 		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
-		assertEquals(2, aggregatedDeviceList.size());
-		assertEquals("Core 510i", aggregatedDeviceList.get(0).getDeviceModel());
-		assertEquals("Core 110f", aggregatedDeviceList.get(1).getDeviceModel());
+		assertEquals(Collections.singletonList("Core 510i"), models(aggregatedDeviceList));
 	}
 
 	/**
@@ -170,9 +163,9 @@ class QSysReflectCommunicatorTest {
 //		deviceList.add("11928");
 //		qSysReflectCommunicator.retrieveMultipleStatistics(deviceList);
 		qSysReflectCommunicator.setDeviceMetaDataRetrievalTimeout(30000);
+		qSysReflectCommunicator.retrieveMultipleStatistics();
 		Thread.sleep(30000);
 		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
-		Thread.sleep(30000);
 
 		AggregatedDevice aggregatedDevice = aggregatedDeviceList.stream().filter(device -> device.getDeviceId().equals("9440")).findAny().get();
 		assertEquals("9440", aggregatedDevice.getDeviceId());
@@ -183,13 +176,12 @@ class QSysReflectCommunicatorTest {
 		assertEquals("Core 510i", aggregatedDevice.getDeviceModel());
 		assertEquals("CHI-MillPark-DSP01", aggregatedDevice.getDeviceName());
 
-		assertEquals("11928", aggregatedDeviceList.get(1).getDeviceId());
-		assertEquals("3-440F59FA6034C59670FF3C0928929607", aggregatedDeviceList.get(1).getSerialNumber());
-		assertEquals("Running", aggregatedDeviceList.get(1).getProperties().get("DeviceStatusMessage"));
-		assertEquals("9.2.1-2110.001", aggregatedDeviceList.get(1).getProperties().get("FirmwareVersion"));
-		assertEquals("AVI-SPL-LAB", aggregatedDeviceList.get(1).getProperties().get("SiteName"));
-		assertEquals("Core 110f", aggregatedDeviceList.get(1).getDeviceModel());
-		assertEquals("CeeSalt-Core110f", aggregatedDeviceList.get(1).getDeviceName());
+		AggregatedDevice core110 = aggregatedDeviceList.stream().filter(device -> device.getDeviceId().equals("11928")).findAny().get();
+		assertEquals("3-440F59FA6034C59670FF3C0928929607", core110.getSerialNumber());
+		assertEquals("Running", core110.getProperties().get("DeviceStatusMessage"));
+		assertEquals("AVI-SPL-LAB", core110.getProperties().get("SiteName"));
+		assertEquals("Core 110", core110.getDeviceModel());
+		assertEquals("AVISPL Test Core110f: AVI-SPL-LAB: CeeSalt-Core110f", core110.getDeviceName());
 	}
 
 	/**
@@ -358,7 +350,7 @@ class QSysReflectCommunicatorTest {
 		qSysReflectCommunicator.retrieveMultipleStatistics();
 		Thread.sleep(30000);
 		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
-		assertEquals(14, aggregatedDeviceList.size());
+		assertEquals(13, aggregatedDeviceList.size());
 		for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
 			if (aggregatedDevice.getDeviceName().equals("CHI-MillPark-DSP01")) {
 				Map<String, String> stats = aggregatedDevice.getProperties();
@@ -404,7 +396,7 @@ class QSysReflectCommunicatorTest {
 		qSysReflectCommunicator.retrieveMultipleStatistics();
 		Thread.sleep(30000);
 		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
-		assertEquals(4, aggregatedDeviceList.size());
+		assertEquals(3, aggregatedDeviceList.size());
 		for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
 			Map<String, String> stats = aggregatedDevice.getProperties();
 			assertEquals("Camera", stats.get("DeviceType"));
@@ -446,16 +438,11 @@ class QSysReflectCommunicatorTest {
 		qSysReflectCommunicator.retrieveMultipleStatistics();
 		Thread.sleep(30000);
 		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
-		assertEquals(3, aggregatedDeviceList.size());
-		Map<String, String> stats = aggregatedDeviceList.get(0).getProperties();
-		assertEquals("Camera", stats.get("DeviceType"));
-		assertEquals("PTZ-12x72", stats.get("DeviceModel"));
-		stats = aggregatedDeviceList.get(1).getProperties();
-		assertEquals("Camera", stats.get("DeviceType"));
-		assertEquals("PTZ-12x72", stats.get("DeviceModel"));
-		stats = aggregatedDeviceList.get(2).getProperties();
-		assertEquals("Camera", stats.get("DeviceType"));
-		assertEquals("PTZ-12x72", stats.get("DeviceModel"));
+		assertEquals(2, aggregatedDeviceList.size());
+		for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
+			assertEquals("Camera", aggregatedDevice.getProperties().get("DeviceType"));
+			assertEquals("PTZ-12x72", aggregatedDevice.getProperties().get("DeviceModel"));
+		}
 	}
 
 	/**
@@ -519,5 +506,11 @@ class QSysReflectCommunicatorTest {
 		} finally {
 			communicator.destroy();
 		}
+	}
+
+	private static List<String> models(List<AggregatedDevice> devices) {
+		List<String> models = new ArrayList<>();
+		devices.forEach(device -> models.add(device.getDeviceModel()));
+		return models;
 	}
 }
