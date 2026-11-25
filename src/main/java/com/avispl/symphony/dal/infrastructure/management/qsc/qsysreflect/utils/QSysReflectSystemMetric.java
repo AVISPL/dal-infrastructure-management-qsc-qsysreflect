@@ -11,7 +11,7 @@ package com.avispl.symphony.dal.infrastructure.management.qsc.qsysreflect.utils;
  * @since 1.0.0
  */
 public enum QSysReflectSystemMetric {
-	SYSTEM_ID("SystemId"),
+	SYSTEM_ID("SystemID"),
 	SYSTEM_CODE("SystemCode"),
 	SYSTEM_STATUS("SystemStatus"),
 	ALERTS_NORMAL("AlertsNormal"),
@@ -21,6 +21,7 @@ public enum QSysReflectSystemMetric {
 	DESIGN_NAME("DesignName"),
 	DESIGN_PLATFORM("DesignPlatform"),
 	UPTIME("Uptime"),
+	UPTIME_MIN("Uptime(min)"),
 	CORE_NAME("CoreName"),
 	MODEL("Model");
 

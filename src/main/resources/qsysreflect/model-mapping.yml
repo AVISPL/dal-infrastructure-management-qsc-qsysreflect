@@ -2,13 +2,13 @@ models:
   - model:
       name: Generic
       vendor: QSC
-      filter: get("model").asText().equals("Core 110f") == false && get("model").asText().equals("Core 510i") == false && get("model").asText().equals("NV-32-H (Core Mode)") == false
+      filter: '"Core 110f".equals(get("model")?.asText()) == false && "Core 510i".equals(get("model")?.asText()) == false && "NV-32-H (Core Mode)".equals(get("model")?.asText()) == false'
       properties:
-        firmwareVersion: get("firmware")
-        siteId: get("site")?.get("id")
-        siteName: get("site")?.get("name")
-        deviceUptime: get("uptime")
-        deviceStatusMessage: get("status")?.get("message")
+        FirmwareVersion: get("firmware")
+        SiteID: get("site")?.get("id")
+        SiteName: get("site")?.get("name")
+        DeviceUptime: get("uptime")
+        DeviceStatusMessage: get("status")?.get("message")
       mapping:
         deviceModel: get("model")
         deviceName: get("name")
@@ -20,13 +20,13 @@ models:
   - model:
       name: Core 110f
       vendor: QSC
-      filter: get("model").asText().equals("Core 110f")
+      filter: '"Core 110f".equals(get("model")?.asText())'
       properties:
-        firmwareVersion: get("firmware")
-        siteId: get("site")?.get("id")
-        siteName: get("site")?.get("name")
-        deviceUptime: get("uptime")
-        deviceStatusMessage: get("status")?.get("message")
+        FirmwareVersion: get("firmware")
+        SiteID: get("site")?.get("id")
+        SiteName: get("site")?.get("name")
+        DeviceUptime: get("uptime")
+        DeviceStatusMessage: get("status")?.get("message")
       mapping:
         deviceModel: get("model")
         deviceName: get("name")
@@ -38,13 +38,13 @@ models:
   - model:
       name: Core 510i
       vendor: QSC
-      filter: get("model").asText().equals("Core 510i")
+      filter: '"Core 510i".equals(get("model")?.asText())'
       properties:
-        firmwareVersion: get("firmware")
-        siteId: get("site")?.get("id")
-        siteName: get("site")?.get("name")
-        deviceUptime: get("uptime")
-        deviceStatusMessage: get("status")?.get("message")
+        FirmwareVersion: get("firmware")
+        SiteID: get("site")?.get("id")
+        SiteName: get("site")?.get("name")
+        DeviceUptime: get("uptime")
+        DeviceStatusMessage: get("status")?.get("message")
       mapping:
         deviceModel: get("model")
         deviceName: get("name")
@@ -56,13 +56,13 @@ models:
   - model:
       name: NV-32-H (Core Mode)
       vendor: QSC
-      filter: get("model").asText().equals("NV-32-H (Core Mode)")
+      filter: '"NV-32-H (Core Mode)".equals(get("model")?.asText())'
       properties:
-        firmwareVersion: get("firmware")
-        siteId: get("site")?.get("id")
-        siteName: get("site")?.get("name")
-        deviceUptime: get("uptime")
-        deviceStatusMessage: get("status")?.get("message")
+        FirmwareVersion: get("firmware")
+        SiteID: get("site")?.get("id")
+        SiteName: get("site")?.get("name")
+        DeviceUptime: get("uptime")
+        DeviceStatusMessage: get("status")?.get("message")
       mapping:
         deviceModel: get("model")
         deviceName: get("name")
