@@ -2,20 +2,20 @@ models:
   - model:
       name: Generic
       vendor: QSC
-      filter: get("type").asText().equals("Core") == false
+      filter: '"Core".equals(get("type")?.asText()) == false'
       properties:
-        startedAt: get("startedAt")
-        deviceModel: get("model")
-        deviceName: get("name")
-        deviceId: get("id")
-        manufacturer: get("manufacturer")
-        location: get("location")
-        deviceType: get("type")
-        firmwareVersion: get("firmware")
-        siteId: get("site")?.get("id")
-        siteName: get("site")?.get("name")
-        deviceUptime: get("uptime")
-        deviceStatusMessage: get("status")?.get("message")
+        StartedAt: get("startedAt")
+        DeviceModel: get("model")
+        DeviceName: get("name")
+        DeviceID: get("id")
+        Manufacturer: get("manufacturer")
+        Location: get("location")
+        DeviceType: get("type")
+        FirmwareVersion: get("firmware")
+        SiteID: get("site")?.get("id")
+        SiteName: get("site")?.get("name")
+        DeviceUptime: get("uptime")
+        DeviceStatusMessage: get("status")?.get("message")
       mapping:
         deviceType: get("type")
         deviceModel: get("model")

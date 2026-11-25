@@ -41,46 +41,44 @@ public class SystemResponseDeserializer extends StdDeserializer<SystemResponse> 
 	public SystemResponse deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
 		JsonNode jsonNode = jsonParser.getCodec().readTree(jsonParser);
 		SystemResponse systemResponse = new SystemResponse();
-		JsonNode idNode = jsonNode.get("id");
-		if (idNode != null) {
-			systemResponse.setId(jsonNode.get("id").asInt());
+		// at() returns a missing node instead of null, so an absent status, details, design or core doesn't throw
+		JsonNode id = value(jsonNode, "/id");
+		if (id != null) {
+			systemResponse.setId(id.asInt());
 		}
-		JsonNode codeNode = jsonNode.get("code");
-		if (codeNode != null) {
-			systemResponse.setCode(codeNode.asText());
-		}
-		JsonNode nameNode = jsonNode.get("name");
-		if (nameNode != null) {
-			systemResponse.setName(nameNode.asText());
-		}
-		JsonNode messageNode = jsonNode.get("status").get("message");
-		if (messageNode != null) {
-			systemResponse.setStatusString(messageNode.asText());
-		}
-		JsonNode detailsNode = jsonNode.get("status").get("details");
-		JsonNode itemsNode = detailsNode.get("items");
-		if (itemsNode != null) {
-			systemResponse.setNormalAlert(itemsNode.get("normal").asInt());
-			systemResponse.setWarningAlert(itemsNode.get("warning").asInt());
-			systemResponse.setFaultAlert(itemsNode.get("fault").asInt());
-			systemResponse.setUnknownAlert(itemsNode.get("unknown").asInt());
-		}
-		JsonNode designNode = jsonNode.get("design");
-		if (designNode.get("name") != null) {
-			systemResponse.setDesignName(designNode.get("name").asText());
-		}
-		if (designNode.get("platform") != null) {
-			systemResponse.setDesignPlatform(designNode.get("platform").asText());
-		}
-		if (designNode.get("uptime") != null) {
-			systemResponse.setUptime(designNode.get("uptime").asLong());
-		}
-		if (jsonNode.get("core").get("name") != null) {
-			systemResponse.setCoreName(jsonNode.get("core").get("name").asText());
-		}
-		if (jsonNode.get("core").get("id") != null) {
-			systemResponse.setCoreId(jsonNode.get("core").get("id").asInt());
-		}
+		systemResponse.setCode(text(jsonNode, "/code"));
+		String name = text(jsonNode, "/name");
+		// the name is the system's group name: a system without one is named after its id
+		systemResponse.setName(name != null && !name.isEmpty() ? name : "System " + systemResponse.getId());
+		systemResponse.setStatusString(text(jsonNode, "/status/message"));
+		systemResponse.setNormalAlert(integer(jsonNode, "/status/details/items/normal"));
+		systemResponse.setWarningAlert(integer(jsonNode, "/status/details/items/warning"));
+		systemResponse.setFaultAlert(integer(jsonNode, "/status/details/items/fault"));
+		systemResponse.setUnknownAlert(integer(jsonNode, "/status/details/items/unknown"));
+		systemResponse.setDesignName(text(jsonNode, "/design/name"));
+		systemResponse.setDesignPlatform(text(jsonNode, "/design/platform"));
+		JsonNode uptime = value(jsonNode, "/design/uptime");
+		systemResponse.setUptime(uptime != null ? uptime.asLong() : null);
+		systemResponse.setCoreName(text(jsonNode, "/core/name"));
+		systemResponse.setCoreId(integer(jsonNode, "/core/id"));
 		return systemResponse;
+	}
+
+	/**
+	 * Node at a JSON pointer, or null when it is missing or a JSON null.
+	 */
+	private static JsonNode value(JsonNode node, String pointer) {
+		JsonNode value = node.at(pointer);
+		return value.isMissingNode() || value.isNull() ? null : value;
+	}
+
+	private static String text(JsonNode node, String pointer) {
+		JsonNode value = value(node, pointer);
+		return value != null ? value.asText() : null;
+	}
+
+	private static Integer integer(JsonNode node, String pointer) {
+		JsonNode value = value(node, pointer);
+		return value != null ? value.asInt() : null;
 	}
 }
