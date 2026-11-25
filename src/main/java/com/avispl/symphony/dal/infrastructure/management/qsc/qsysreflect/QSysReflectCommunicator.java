@@ -600,6 +600,8 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 				newClonedAggregatedDevice.setDeviceName(aggregatedDevice.getDeviceName());
 				newClonedAggregatedDevice.setSerialNumber(aggregatedDevice.getSerialNumber());
                 Map<String, String> newProperties = new HashMap<>(aggregatedDevice.getProperties());
+				// a field Q-SYS Reflect doesn't report maps to null: leave the property out
+				newProperties.values().removeIf(Objects::isNull);
 				boolean deviceOnline =
 						QSysReflectConstant.RUNNING.equals(deviceStatusMessageMap.get(aggregatedDevice.getDeviceId())) || QSysReflectConstant.OK.equals(deviceStatusMessageMap.get(aggregatedDevice.getDeviceId()));
 				newClonedAggregatedDevice.setDeviceOnline(deviceOnline);
@@ -703,11 +705,13 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 			String startAt = properties.get(QSysReflectConstant.START_AT);
 			String uptime = properties.get(QSysReflectConstant.DEVICE_UPTIME);
 
-			if (!StringUtils.isNullOrEmpty(uptime)) {
-				properties.put(QSysReflectConstant.DEVICE_UPTIME, handleNormalizeUptime(Long.parseLong(uptime)));
-				putUptimeMinutes(properties, QSysReflectConstant.DEVICE_UPTIME_MIN, Long.parseLong(uptime));
-			} else if (!StringUtils.isNullOrEmpty(startAt)) {
-				properties.put(QSysReflectConstant.START_AT, handleNormalizeUptime(Long.parseLong(startAt)));
+			Long uptimeValue = parseTimestamp(uptime);
+			Long startAtValue = parseTimestamp(startAt);
+			if (uptimeValue != null) {
+				properties.put(QSysReflectConstant.DEVICE_UPTIME, handleNormalizeUptime(uptimeValue));
+				putUptimeMinutes(properties, QSysReflectConstant.DEVICE_UPTIME_MIN, uptimeValue);
+			} else if (startAtValue != null) {
+				properties.put(QSysReflectConstant.START_AT, handleNormalizeUptime(startAtValue));
 			} else {
 				properties.put(QSysReflectConstant.START_AT, QSysReflectConstant.NONE);
 			}
@@ -826,10 +830,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 				}
 			}
 		} catch (Exception e) {
-			String errorMessage = String.format("Aggregated Device Data Retrieval-Error: %s", e.getMessage());
-			if (logger.isDebugEnabled()) {
-				logger.debug(errorMessage, e);
-			}
+			logger.error(String.format("Aggregated Device Data Retrieval-Error: %s", e.getMessage()), e);
 		}
 	}
 	/**
@@ -885,10 +886,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 				logger.debug(String.format("New fetched aggregated device list: %s", aggregatedDevicesMap));
 			}
 		} catch (Exception e) {
-			String errorMessage = String.format("Aggregated Device Data Retrieval-Error: %s", e.getMessage());
-			if (logger.isDebugEnabled()) {
-				logger.debug(errorMessage, e);
-			}
+			logger.error(String.format("Aggregated Device Data Retrieval-Error: %s", e.getMessage()), e);
 		}
 	}
 
@@ -1089,6 +1087,17 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * @param value value reported by Q-SYS Reflect
 	 * @return value or N/A
 	 */
+	private static Long parseTimestamp(String value) {
+		if (StringUtils.isNullOrEmpty(value)) {
+			return null;
+		}
+		try {
+			return Long.parseLong(value);
+		} catch (NumberFormatException e) {
+			return null;
+		}
+	}
+
 	private static String valueOrNone(String value) {
 		return StringUtils.isNullOrEmpty(value) ? QSysReflectConstant.NONE : value;
 	}

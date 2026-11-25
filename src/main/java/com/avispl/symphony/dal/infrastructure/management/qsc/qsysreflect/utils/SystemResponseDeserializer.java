@@ -47,7 +47,9 @@ public class SystemResponseDeserializer extends StdDeserializer<SystemResponse> 
 			systemResponse.setId(id.asInt());
 		}
 		systemResponse.setCode(text(jsonNode, "/code"));
-		systemResponse.setName(text(jsonNode, "/name"));
+		String name = text(jsonNode, "/name");
+		// the name is the system's group name: a system without one is named after its id
+		systemResponse.setName(name != null && !name.isEmpty() ? name : "System " + systemResponse.getId());
 		systemResponse.setStatusString(text(jsonNode, "/status/message"));
 		systemResponse.setNormalAlert(integer(jsonNode, "/status/details/items/normal"));
 		systemResponse.setWarningAlert(integer(jsonNode, "/status/details/items/warning"));
