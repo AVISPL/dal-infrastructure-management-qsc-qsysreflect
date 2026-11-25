@@ -41,46 +41,64 @@ public class SystemResponseDeserializer extends StdDeserializer<SystemResponse> 
 	public SystemResponse deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
 		JsonNode jsonNode = jsonParser.getCodec().readTree(jsonParser);
 		SystemResponse systemResponse = new SystemResponse();
-		JsonNode idNode = jsonNode.get("id");
-		if (idNode != null) {
-			systemResponse.setId(jsonNode.get("id").asInt());
+		// path() returns a missing node instead of null, so an absent container (status, details, design, core) doesn't throw
+		JsonNode idNode = jsonNode.path("id");
+		if (hasValue(idNode)) {
+			systemResponse.setId(idNode.asInt());
 		}
-		JsonNode codeNode = jsonNode.get("code");
-		if (codeNode != null) {
+		JsonNode codeNode = jsonNode.path("code");
+		if (hasValue(codeNode)) {
 			systemResponse.setCode(codeNode.asText());
 		}
-		JsonNode nameNode = jsonNode.get("name");
-		if (nameNode != null) {
+		JsonNode nameNode = jsonNode.path("name");
+		if (hasValue(nameNode)) {
 			systemResponse.setName(nameNode.asText());
 		}
-		JsonNode messageNode = jsonNode.get("status").get("message");
-		if (messageNode != null) {
+		JsonNode statusNode = jsonNode.path("status");
+		JsonNode messageNode = statusNode.path("message");
+		if (hasValue(messageNode)) {
 			systemResponse.setStatusString(messageNode.asText());
 		}
-		JsonNode detailsNode = jsonNode.get("status").get("details");
-		JsonNode itemsNode = detailsNode.get("items");
-		if (itemsNode != null) {
-			systemResponse.setNormalAlert(itemsNode.get("normal").asInt());
-			systemResponse.setWarningAlert(itemsNode.get("warning").asInt());
-			systemResponse.setFaultAlert(itemsNode.get("fault").asInt());
-			systemResponse.setUnknownAlert(itemsNode.get("unknown").asInt());
+		JsonNode itemsNode = statusNode.path("details").path("items");
+		if (hasValue(itemsNode.path("normal"))) {
+			systemResponse.setNormalAlert(itemsNode.path("normal").asInt());
 		}
-		JsonNode designNode = jsonNode.get("design");
-		if (designNode.get("name") != null) {
-			systemResponse.setDesignName(designNode.get("name").asText());
+		if (hasValue(itemsNode.path("warning"))) {
+			systemResponse.setWarningAlert(itemsNode.path("warning").asInt());
 		}
-		if (designNode.get("platform") != null) {
-			systemResponse.setDesignPlatform(designNode.get("platform").asText());
+		if (hasValue(itemsNode.path("fault"))) {
+			systemResponse.setFaultAlert(itemsNode.path("fault").asInt());
 		}
-		if (designNode.get("uptime") != null) {
-			systemResponse.setUptime(designNode.get("uptime").asLong());
+		if (hasValue(itemsNode.path("unknown"))) {
+			systemResponse.setUnknownAlert(itemsNode.path("unknown").asInt());
 		}
-		if (jsonNode.get("core").get("name") != null) {
-			systemResponse.setCoreName(jsonNode.get("core").get("name").asText());
+		JsonNode designNode = jsonNode.path("design");
+		if (hasValue(designNode.path("name"))) {
+			systemResponse.setDesignName(designNode.path("name").asText());
 		}
-		if (jsonNode.get("core").get("id") != null) {
-			systemResponse.setCoreId(jsonNode.get("core").get("id").asInt());
+		if (hasValue(designNode.path("platform"))) {
+			systemResponse.setDesignPlatform(designNode.path("platform").asText());
+		}
+		if (hasValue(designNode.path("uptime"))) {
+			systemResponse.setUptime(designNode.path("uptime").asLong());
+		}
+		JsonNode coreNode = jsonNode.path("core");
+		if (hasValue(coreNode.path("name"))) {
+			systemResponse.setCoreName(coreNode.path("name").asText());
+		}
+		if (hasValue(coreNode.path("id"))) {
+			systemResponse.setCoreId(coreNode.path("id").asInt());
 		}
 		return systemResponse;
+	}
+
+	/**
+	 * Check that a node is present and not a JSON null.
+	 *
+	 * @param node node to check
+	 * @return true if the node has a value
+	 */
+	private static boolean hasValue(JsonNode node) {
+		return !node.isMissingNode() && !node.isNull();
 	}
 }

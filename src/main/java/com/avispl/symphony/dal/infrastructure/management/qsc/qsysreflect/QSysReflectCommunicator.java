@@ -305,9 +305,10 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	private final List<SystemResponse> systemResponseFilterList = Collections.synchronizedList(new ArrayList<>());
 
 	/**
-	 * List of error message occur while fetching system information
+	 * Error of the last system information retrieval; null after a successful one. Kept until the next successful
+	 * retrieval, so a persistent failure is reported on every monitoring cycle instead of being raised and cleared.
 	 */
-	private Set<String> systemErrorMessagesList = Collections.synchronizedSet(new LinkedHashSet<>());
+	private volatile String systemRetrievalError;
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
 	/**
@@ -501,7 +502,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 
 		aggregatedDevicesMap.clear();
 		systemResponse.clear();
-		systemErrorMessagesList.clear();
+		systemRetrievalError = null;
 		super.internalDestroy();
 	}
 
@@ -542,13 +543,9 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 		populateAdapterMetadata(statistics, dynamicStatistics);
 		extendedStatistics.setStatistics(statistics);
 		extendedStatistics.setDynamicStatistics(dynamicStatistics);
-		if (!systemErrorMessagesList.isEmpty()) {
-			synchronized (systemErrorMessagesList) {
-				String errorMessage = systemErrorMessagesList.stream().map(Object::toString)
-						.collect(Collectors.joining("\n"));
-				systemErrorMessagesList.clear();
-				throw new ResourceNotReachableException(errorMessage);
-			}
+		String systemError = systemRetrievalError;
+		if (systemError != null) {
+			throw new ResourceNotReachableException(systemError);
 		}
 		return Collections.singletonList(extendedStatistics);
 	}
@@ -901,18 +898,31 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 */
 	public void retrieveSystemInfo() {
 		// Retrieve system information every 30 seconds
+		JsonNode systems;
 		try {
-			JsonNode systems = this.fetchData(QSysReflectConstant.QSYS_URL_SYSTEMS, JsonNode.class);
-			systemResponse.clear();
-			for (int i = 0; i < systems.size(); i++) {
-				SystemResponse sysRes = objectMapper.treeToValue(systems.get(i), SystemResponse.class);
-				systemResponse.add(sysRes);
-			}
+			systems = this.fetchData(QSysReflectConstant.QSYS_URL_SYSTEMS, JsonNode.class);
 		} catch (Exception e) {
 			String errorMessage = String.format("System Information Data Retrieval-Error: %s", e.getMessage());
-			systemErrorMessagesList.add(errorMessage);
+			systemRetrievalError = errorMessage;
 			logger.error(errorMessage, e);
+			return;
 		}
+		// parse each system on its own: one system that can't be parsed doesn't discard the others
+		List<SystemResponse> retrievedSystems = new ArrayList<>();
+		for (int i = 0; i < systems.size(); i++) {
+			JsonNode systemNode = systems.get(i);
+			try {
+				retrievedSystems.add(objectMapper.treeToValue(systemNode, SystemResponse.class));
+			} catch (Exception e) {
+				logger.warn(String.format("Unable to parse Q-SYS system %s (index %d), skipping it in this cycle",
+						systemNode.path("id").asText("<no id>"), i), e);
+			}
+		}
+		synchronized (systemResponse) {
+			systemResponse.clear();
+			systemResponse.addAll(retrievedSystems);
+		}
+		systemRetrievalError = null;
 	}
 
 	/**
@@ -937,19 +947,19 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 				synchronized (systemResponse) {
 					for (SystemResponse systemResponse : systemResponse) {
 						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.SYSTEM_ID.getName()), String.valueOf(systemResponse.getId()));
-						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.SYSTEM_CODE.getName()), String.valueOf(systemResponse.getCode()));
-						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.SYSTEM_STATUS.getName()), String.valueOf(systemResponse.getStatusString()));
+						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.SYSTEM_CODE.getName()), valueOrNone(systemResponse.getCode()));
+						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.SYSTEM_STATUS.getName()), valueOrNone(systemResponse.getStatusString()));
 						if (systemResponse.getNormalAlert() != null && systemResponse.getFaultAlert() != null && systemResponse.getUnknownAlert() != null && systemResponse.getWarningAlert() != null) {
 							stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.ALERTS_NORMAL.getName()), String.valueOf(systemResponse.getNormalAlert()));
 							stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.ALERTS_WARNING.getName()), String.valueOf(systemResponse.getWarningAlert()));
 							stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.ALERTS_FAULT.getName()), String.valueOf(systemResponse.getFaultAlert()));
 							stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.ALERTS_UNKNOWN.getName()), String.valueOf(systemResponse.getUnknownAlert()));
 						}
-						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.DESIGN_NAME.getName()), String.valueOf(systemResponse.getDesignName()));
-						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.DESIGN_PLATFORM.getName()), String.valueOf(systemResponse.getDesignPlatform()));
+						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.DESIGN_NAME.getName()), valueOrNone(systemResponse.getDesignName()));
+						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.DESIGN_PLATFORM.getName()), valueOrNone(systemResponse.getDesignPlatform()));
 						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.UPTIME.getName()), handleNormalizeUptime(systemResponse.getUptime()));
-						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.CORE_NAME.getName()), String.valueOf(systemResponse.getCoreName()));
-						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.MODEL.getName()), deviceNameAndModelMap.get(systemResponse.getCoreName()));
+						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.CORE_NAME.getName()), valueOrNone(systemResponse.getCoreName()));
+						stats.put(String.format("%s#%s", systemResponse.getName(), QSysReflectSystemMetric.MODEL.getName()), valueOrNone(deviceNameAndModelMap.get(systemResponse.getCoreName())));
 					}
 				}
 			}
@@ -1064,8 +1074,21 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * @return human-readable uptime string
 	 */
 	private String handleNormalizeUptime(Long uptime) {
+		if (uptime == null) {
+			return QSysReflectConstant.NONE;
+		}
 		long timeDiff = (System.currentTimeMillis() - uptime) / 1000;
 		return timeDiff > 0 ? normalizeUptime(timeDiff) : QSysReflectConstant.NONE;
+	}
+
+	/**
+	 * Value for a statistic: the value, or None when the system doesn't report it.
+	 *
+	 * @param value value reported by Q-SYS Reflect
+	 * @return value or None
+	 */
+	private static String valueOrNone(String value) {
+		return StringUtils.isNullOrEmpty(value) ? QSysReflectConstant.NONE : value;
 	}
 
 	/**

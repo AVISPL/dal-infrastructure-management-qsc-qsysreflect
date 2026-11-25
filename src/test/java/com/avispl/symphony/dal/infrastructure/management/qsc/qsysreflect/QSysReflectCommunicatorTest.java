@@ -3,6 +3,9 @@
  */
 package com.avispl.symphony.dal.infrastructure.management.qsc.qsysreflect;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -484,6 +487,37 @@ class QSysReflectCommunicatorTest {
 			Map<String, String> stats = aggregatedDevice.getProperties();
 			assertEquals("AV Source", stats.get("deviceType"));
 			assertEquals("Generic AV Source", stats.get("deviceModel"));
+		}
+	}
+
+	/**
+	 * SYAL-4037: a failed system retrieval stays reported until a retrieval succeeds, and a system without status,
+	 * design or core doesn't fail the others.
+	 */
+	@Tag("Mock")
+	@Test
+	void testSystemRetrievalErrors() throws Exception {
+		QSysReflectCommunicator communicator = new QSysReflectCommunicator();
+		communicator.setProtocol(PROTOCOL);
+		communicator.setHost(HOST_NAME);
+		communicator.setPort(wireMockServer.port());
+		communicator.setPassword("token");
+		communicator.init();
+		try {
+			wireMockServer.stubFor(get(urlEqualTo("/api/public/v0/systems")).willReturn(aResponse().withStatus(500)));
+			communicator.retrieveSystemInfo();
+			assertThrows(ResourceNotReachableException.class, communicator::getMultipleStatistics);
+			assertThrows(ResourceNotReachableException.class, communicator::getMultipleStatistics);
+
+			wireMockServer.stubFor(get(urlEqualTo("/api/public/v0/systems")).willReturn(aResponse().withStatus(200)
+					.withHeader("Content-Type", "application/json")
+					.withBody("[{\"id\": 2, \"name\": \"No design\"}, {\"id\": 1, \"name\": \"Valid\", \"design\": {\"name\": \"Design\"}}]")));
+			communicator.retrieveSystemInfo();
+			Map<String, String> stats = ((ExtendedStatistics) communicator.getMultipleStatistics().get(0)).getStatistics();
+			assertEquals("1", stats.get("Valid#SystemId"));
+			assertEquals("2", stats.get("No design#SystemId"));
+		} finally {
+			communicator.destroy();
 		}
 	}
 }
