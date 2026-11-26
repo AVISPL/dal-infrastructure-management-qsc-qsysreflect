@@ -19,6 +19,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import javax.security.auth.login.FailedLoginException;
+
 import com.github.tomakehurst.wiremock.WireMockServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -302,7 +304,7 @@ class QSysReflectCommunicatorTest {
 		// Worker thread won't be initialized due to API token is empty
 		qSysReflectCommunicator.init();
 		qSysReflectCommunicator.retrieveMultipleStatistics();
-		assertThrows(ResourceNotReachableException.class, () -> qSysReflectCommunicator.getMultipleStatistics(), "Expect fail here due to api token is empty");
+		assertThrows(FailedLoginException.class, () -> qSysReflectCommunicator.getMultipleStatistics(), "Expect fail here due to api token is empty");
 	}
 
 	/**
@@ -354,7 +356,7 @@ class QSysReflectCommunicatorTest {
 		for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
 			if (aggregatedDevice.getDeviceName().equals("CHI-MillPark-DSP01")) {
 				Map<String, String> stats = aggregatedDevice.getProperties();
-				assertEquals("Core", stats.get("DeviceType"));
+				assertEquals("Core", aggregatedDevice.getDeviceType());
 				assertEquals("829", stats.get("SiteID"));
 				assertEquals("Schaumburg Office", stats.get("SiteName"));
 				assertEquals("9.2.1-2110.001", stats.get("FirmwareVersion"));
@@ -398,8 +400,10 @@ class QSysReflectCommunicatorTest {
 		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
 		assertEquals(3, aggregatedDeviceList.size());
 		for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
-			Map<String, String> stats = aggregatedDevice.getProperties();
-			assertEquals("Camera", stats.get("DeviceType"));
+			assertEquals("Camera", aggregatedDevice.getDeviceType());
+			for (String metadata : Arrays.asList("DeviceType", "DeviceModel", "DeviceName", "DeviceID", "Manufacturer")) {
+				assertFalse(aggregatedDevice.getProperties().containsKey(metadata), metadata + " is device metadata, not a property");
+			}
 		}
 	}
 
@@ -440,8 +444,8 @@ class QSysReflectCommunicatorTest {
 		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
 		assertEquals(2, aggregatedDeviceList.size());
 		for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
-			assertEquals("Camera", aggregatedDevice.getProperties().get("DeviceType"));
-			assertEquals("PTZ-12x72", aggregatedDevice.getProperties().get("DeviceModel"));
+			assertEquals("Camera", aggregatedDevice.getDeviceType());
+			assertEquals("PTZ-12x72", aggregatedDevice.getDeviceModel());
 		}
 	}
 
@@ -471,9 +475,8 @@ class QSysReflectCommunicatorTest {
 		List<AggregatedDevice> aggregatedDeviceList = qSysReflectCommunicator.retrieveMultipleStatistics();
 		assertEquals(3, aggregatedDeviceList.size());
 		for (AggregatedDevice aggregatedDevice : aggregatedDeviceList) {
-			Map<String, String> stats = aggregatedDevice.getProperties();
-			assertEquals("AV Source", stats.get("DeviceType"));
-			assertEquals("Generic AV Source", stats.get("DeviceModel"));
+			assertEquals("AV Source", aggregatedDevice.getDeviceType());
+			assertEquals("Generic AV Source", aggregatedDevice.getDeviceModel());
 		}
 	}
 
@@ -503,6 +506,28 @@ class QSysReflectCommunicatorTest {
 			Map<String, String> stats = ((ExtendedStatistics) communicator.getMultipleStatistics().get(0)).getStatistics();
 			assertEquals("1", stats.get("Valid#SystemID"));
 			assertEquals("2", stats.get("No design#SystemID"));
+		} finally {
+			communicator.destroy();
+		}
+	}
+
+	/**
+	 * A rejected API token is a login error, not an API error.
+	 */
+	@Tag("Mock")
+	@Test
+	void testRejectedTokenIsLoginError() throws Exception {
+		QSysReflectCommunicator communicator = new QSysReflectCommunicator();
+		communicator.setProtocol(PROTOCOL);
+		communicator.setHost(HOST_NAME);
+		communicator.setPort(wireMockServer.port());
+		communicator.setPassword("wrong-token");
+		communicator.init();
+		try {
+			wireMockServer.stubFor(get(urlEqualTo("/api/public/v0/systems")).willReturn(aResponse().withStatus(401)
+					.withHeader("Content-Type", "application/json").withBody("{\"message\":\"Unauthorized\"}")));
+			communicator.retrieveSystemInfo();
+			assertThrows(FailedLoginException.class, communicator::getMultipleStatistics);
 		} finally {
 			communicator.destroy();
 		}

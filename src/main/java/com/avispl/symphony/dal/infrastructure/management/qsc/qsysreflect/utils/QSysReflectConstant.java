@@ -28,8 +28,6 @@ public class QSysReflectConstant {
 	public static final String NONE = "N/A";
 	public static final String RUNNING = "Running";
 	public static final String OK = "OK";
-	public static final String DEVICE_TYPE = "DeviceType";
-	public static final String DEVICE_NAME = "DeviceName";
 	public static final String PROCESSOR = "Processor";
 	public static final String SITE_NAME = "SiteName";
 	public static final String CORE = "Core";

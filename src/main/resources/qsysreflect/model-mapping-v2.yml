@@ -5,12 +5,7 @@ models:
       filter: '"Core".equals(get("type")?.asText()) == false'
       properties:
         StartedAt: get("startedAt")
-        DeviceModel: get("model")
-        DeviceName: get("name")
-        DeviceID: get("id")
-        Manufacturer: get("manufacturer")
         Location: get("location")
-        DeviceType: get("type")
         FirmwareVersion: get("firmware")
         SiteID: get("site")?.get("id")
         SiteName: get("site")?.get("name")
@@ -21,7 +16,7 @@ models:
         deviceModel: get("model")
         deviceName: get("name")
         deviceId: get("id")
-        manufacturer: get("manufacturer")
+        deviceMake: get("manufacturer")
         location: get("location")
         startedAt: get("startedAt")
         serialNumber: get("serial")

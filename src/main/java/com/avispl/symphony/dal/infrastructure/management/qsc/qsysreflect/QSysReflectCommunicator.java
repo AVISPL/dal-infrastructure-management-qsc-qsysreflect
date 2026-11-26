@@ -4,6 +4,8 @@
 package com.avispl.symphony.dal.infrastructure.management.qsc.qsysreflect;
 
 import java.io.IOException;
+
+import javax.security.auth.login.FailedLoginException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Function;
@@ -309,6 +311,11 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * retrieval, so a persistent failure is reported on every monitoring cycle instead of being raised and cleared.
 	 */
 	private volatile String systemRetrievalError;
+
+	/**
+	 * True when the last /systems request was rejected because of the API token
+	 */
+	private volatile boolean systemRetrievalLoginFailed;
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
 	/**
@@ -503,6 +510,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 		aggregatedDevicesMap.clear();
 		systemResponse.clear();
 		systemRetrievalError = null;
+		systemRetrievalLoginFailed = false;
 		super.internalDestroy();
 	}
 
@@ -527,14 +535,14 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * {@inheritDoc}
 	 */
 	@Override
-	public List<Statistics> getMultipleStatistics() {
+	public List<Statistics> getMultipleStatistics() throws Exception {
 		try {
 			retrieveStatisticsTimeOut = getMonitoringRate() * 180000L;
 		} catch (NoSuchMethodError nsme) {
 			logger.warn("Unsupported feature: getMonitoringRate isn't available on current Cloud Connector version.", nsme);
 		}
 		if (!checkValidApiToken()) {
-			throw new ResourceNotReachableException("API Token cannot be null or empty, please enter valid API token in the password field.");
+			throw new FailedLoginException("API Token cannot be null or empty, please enter valid API token in the password field.");
 		}
 		Map<String, String> statistics = new HashMap<>();
 		Map<String, String> dynamicStatistics = new HashMap<>();
@@ -545,6 +553,9 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 		extendedStatistics.setDynamicStatistics(dynamicStatistics);
 		String systemError = systemRetrievalError;
 		if (systemError != null) {
+			if (systemRetrievalLoginFailed) {
+				throw new FailedLoginException(systemError);
+			}
 			throw new ResourceNotReachableException(systemError);
 		}
 		return Collections.singletonList(extendedStatistics);
@@ -599,6 +610,8 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 				newClonedAggregatedDevice.setDeviceModel(aggregatedDevice.getDeviceModel());
 				newClonedAggregatedDevice.setDeviceName(aggregatedDevice.getDeviceName());
 				newClonedAggregatedDevice.setSerialNumber(aggregatedDevice.getSerialNumber());
+				newClonedAggregatedDevice.setDeviceType(aggregatedDevice.getDeviceType());
+				newClonedAggregatedDevice.setDeviceMake(aggregatedDevice.getDeviceMake());
                 Map<String, String> newProperties = new HashMap<>(aggregatedDevice.getProperties());
 				// a field Q-SYS Reflect doesn't report maps to null: leave the property out
 				newProperties.values().removeIf(Objects::isNull);
@@ -619,9 +632,9 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * Populate filter list of aggregated devices based
 	 *
 	 * @param filterName the filterName is name of filter
-	 * @param propertiesName the propertiesName is type filter
+	 * @param valueOf value of a device the filter compares to
 	 */
-	private void populateFilter(String filterName, String propertiesName) {
+	private void populateFilter(String filterName, Function<AggregatedDevice, String> valueOf) {
 		try {
 			if (!StringUtils.isNullOrEmpty(filterName) && !QSysReflectConstant.DOUBLE_QUOTES.equals(filterName)) {
 				List<String> filterTypeValues = handleListExtractFilter(filterName);
@@ -630,10 +643,8 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 				}
 				List<AggregatedDevice> filteredAggregatedDevice = new ArrayList<>();
 					for (AggregatedDevice aggregatedDevice : aggregatedDevicesMap.values()) {
-						Map<String, String> properties = aggregatedDevice.getProperties();
-
 						for (String type : filterTypeValues) {
-							if (type.equals(properties.get(propertiesName))) {
+							if (type.equals(valueOf.apply(aggregatedDevice))) {
 								filteredAggregatedDevice.add(aggregatedDevice);
 							}
 						}
@@ -818,15 +829,10 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 				if (device == null) {
 					continue;
 				}
-				Map<String, String> newProps = new HashMap<>(device.getProperties());
-				newProps.put(QSysReflectConstant.DEVICE_TYPE, QSysReflectConstant.CORE);
-
-				device.setProperties(newProps);
+				device.setDeviceType(QSysReflectConstant.CORE);
 				SystemResponse core = byCoreId.get(deviceId);
 				if (core != null) {
-					String deviceName = buildDeviceName(core.getName(), newProps.get(QSysReflectConstant.SITE_NAME), device.getDeviceName());
-					device.setDeviceName(deviceName);
-					newProps.put(QSysReflectConstant.DEVICE_NAME, deviceName);
+					device.setDeviceName(buildDeviceName(core.getName(), device.getProperties().get(QSysReflectConstant.SITE_NAME), device.getDeviceName()));
 				}
 			}
 		} catch (Exception e) {
@@ -858,12 +864,13 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 
 				Optional<AggregatedDevice> existingDevice = aggregatedDevicesMap.entrySet().stream().filter(ed -> Objects.equals(ed.getKey(), device.getDeviceId())).findFirst().map(Map.Entry::getValue);
 				String retrievedSystemId = device.getDeviceId();
-				deviceProperties.put(QSysReflectConstant.DEVICE_NAME, deviceName);
 				if (existingDevice.isPresent()) {
 					AggregatedDevice ed = existingDevice.get();
 					ed.setProperties(new HashMap<>(deviceProperties));
 					ed.setDeviceOnline(device.getDeviceOnline());
 					ed.setDeviceName(deviceName);
+					ed.setDeviceType(device.getDeviceType());
+					ed.setDeviceMake(device.getDeviceMake());
 				} else {
 					device.setDeviceName(deviceName);
 					aggregatedDevicesMap.put(retrievedSystemId, device);
@@ -903,6 +910,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 		} catch (Exception e) {
 			String errorMessage = String.format("System Information Data Retrieval-Error: %s", e.getMessage());
 			systemRetrievalError = errorMessage;
+			systemRetrievalLoginFailed = e instanceof FailedLoginException;
 			logger.error(errorMessage, e);
 			return;
 		}
@@ -922,6 +930,7 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 			systemResponse.addAll(retrievedSystems);
 		}
 		systemRetrievalError = null;
+		systemRetrievalLoginFailed = false;
 	}
 
 	/**
@@ -999,13 +1008,10 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	private void applyAggregatedDeviceFiltering() {
 		populateDeviceStatusMessage();
 		filterDeviceModel();
-		populateFilter(filterDeviceStatusMessage, QSysReflectConstant.DEVICE_STATUS_MESSAGE);
-		populateFilter(filterType, QSysReflectConstant.DEVICE_TYPE);
+		populateFilter(filterDeviceStatusMessage, device -> device.getProperties().get(QSysReflectConstant.DEVICE_STATUS_MESSAGE));
+		populateFilter(filterType, AggregatedDevice::getDeviceType);
 
-		aggregatedDevicesMap.values().removeIf(deviceEntry -> {
-			Map<String, String> properties = deviceEntry.getProperties();
-			return QSysReflectConstant.PROCESSOR.equalsIgnoreCase(properties.get(QSysReflectConstant.DEVICE_TYPE));
-		});
+		aggregatedDevicesMap.values().removeIf(deviceEntry -> QSysReflectConstant.PROCESSOR.equalsIgnoreCase(deviceEntry.getDeviceType()));
 	}
 
 	/**
@@ -1156,13 +1162,16 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 	 * @param clazz the class type to map the response to
 	 * @param <T> the type of the expected response
 	 * @return an instance of the specified class containing the mapped response data
+	 * @throws FailedLoginException if Q-SYS Reflect rejects the API token
 	 * @throws ResourceNotReachableException if the request fails or the response cannot be processed
 	 */
-	private <T> T fetchData(String url, Class<T> clazz) {
+	private <T> T fetchData(String url, Class<T> clazz) throws FailedLoginException {
 		try {
 			return this.doGet(url.replace("//", "/"), clazz);
+		} catch (FailedLoginException e) {
+			throw e;
 		} catch (Exception e) {
-			throw new ResourceNotReachableException("Failed to request to the API", e);
+			throw new ResourceNotReachableException(String.format("Failed to request to the API: %s", e.getMessage()), e);
 		}
 	}
 
@@ -1183,6 +1192,9 @@ public class QSysReflectCommunicator extends RestCommunicator implements Aggrega
 		String previous = null;
 
 		for (String segment : segments) {
+			if (StringUtils.isNullOrEmpty(segment)) {
+				continue;
+			}
 			if (!Objects.equals(segment, previous)) {
 				result.add(segment);
 				previous = segment;
